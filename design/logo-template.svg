@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23262D"/>
+      <stop offset="1" stop-color="#0C0D10"/>
+    </linearGradient>
+    <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="{{TOP}}"/>
+      <stop offset="1" stop-color="{{BOTTOM}}"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.5">
+      <stop offset="0" stop-color="{{BOTTOM}}" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="{{BOTTOM}}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- W drawn as a single stroke, round joins, waveform bars either side -->
+  <g fill="none" stroke="url(#fg)" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="292,340 400,700 512,430 624,700 732,340" stroke-width="88"/>
+  </g>
+  <g fill="url(#fg)" opacity="0.55">
+    <rect x="148" y="452" width="56" height="120" rx="28"/>
+    <rect x="820" y="452" width="56" height="120" rx="28"/>
+  </g>
+  <g fill="url(#fg)" opacity="0.25">
+    <rect x="60" y="482" width="40" height="60" rx="20"/>
+    <rect x="924" y="482" width="40" height="60" rx="20"/>
+  </g>
+</svg>

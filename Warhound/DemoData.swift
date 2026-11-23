@@ -2,7 +2,8 @@ import SwiftData
 import SwiftUI
 
 /// Sample library for screenshots and previews. Launch with `-demo`, optionally
-/// `-demoTab library|search|latest` and `-demoPlayer YES` to open the full player.
+/// `-demoTab library|search|latest`, `-demoPlayer YES` to open the full player,
+/// `-demoSettings YES` to open Settings, and `-accentTheme blue` (any theme) to change colour.
 @MainActor
 enum DemoData {
     static var isActive: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }

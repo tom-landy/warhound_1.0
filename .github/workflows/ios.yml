@@ -64,6 +64,9 @@ jobs:
           NAME=2-library shoot -demoTab library
           NAME=3-player shoot -demoTab latest -demoPlayer YES
           NAME=4-search shoot -demoTab search
+          NAME=5-settings shoot -demoTab latest -demoSettings YES -accentTheme teal
+          NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
+          NAME=7-library-blue shoot -demoTab library -accentTheme blue
           xcrun simctl terminate "$UDID" com.tomlandy.Warhound || true
           xcrun simctl launch "$UDID" com.tomlandy.Warhound
           sleep 5

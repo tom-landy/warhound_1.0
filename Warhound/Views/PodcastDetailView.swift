@@ -4,6 +4,7 @@ import SwiftUI
 struct PodcastDetailView: View {
     @Bindable var podcast: Podcast
     @Environment(\.modelContext) private var context
+    @Environment(\.theme) private var theme
     @State private var expanded = false
     @State private var hidePlayed = false
 
@@ -85,7 +86,7 @@ struct PodcastDetailView: View {
                     .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
-            .tint(podcast.isSubscribed ? Color.white.opacity(0.15) : Color.accentColor)
+            .tint(podcast.isSubscribed ? Color.white.opacity(0.15) : theme.color)
             .foregroundStyle(podcast.isSubscribed ? Color.primary : Color.black)
             .contentTransition(.symbolEffect(.replace))
 

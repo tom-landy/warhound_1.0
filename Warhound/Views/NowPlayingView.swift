@@ -164,15 +164,18 @@ struct NowPlayingView: View {
 }
 
 private struct RoutePicker: UIViewRepresentable {
+    @Environment(\.theme) private var theme
+
     func makeUIView(context: Context) -> AVRoutePickerView {
         let view = AVRoutePickerView()
         view.tintColor = .secondaryLabel
-        view.activeTintColor = UIColor(named: "AccentColor")
         view.prioritizesVideoDevices = false
         return view
     }
 
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
+        uiView.activeTintColor = UIColor(theme.color)
+    }
 }
 
 struct EpisodeNotesView: View {

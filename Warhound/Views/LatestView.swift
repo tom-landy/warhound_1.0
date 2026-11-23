@@ -42,16 +42,17 @@ struct LatestView: View {
             }
         }
         .navigationTitle("Latest")
+        .settingsButton(demo: true)
     }
 }
 
 struct EmptyLibraryView: View {
     let findPodcasts: () -> Void
+    @Environment(\.theme) private var theme
 
     var body: some View {
         ContentUnavailableView {
-            Image("Logo")
-                .resizable()
+            LogoView(theme: theme)
                 .frame(width: 96, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .padding(.bottom, 8)

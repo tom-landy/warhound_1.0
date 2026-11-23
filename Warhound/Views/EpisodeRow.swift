@@ -4,6 +4,7 @@ struct EpisodeRow: View {
     let episode: Episode
     var showsPodcast = false
     @Environment(AudioPlayer.self) private var player
+    @Environment(\.theme) private var theme
     @State private var showsNotes = false
 
     var body: some View {
@@ -43,7 +44,7 @@ struct EpisodeRow: View {
                 Label(episode.isPlayed ? "Unplayed" : "Played",
                       systemImage: episode.isPlayed ? "circle" : "checkmark.circle")
             }
-            .tint(.accentColor)
+            .tint(theme.color)
         }
     }
 
@@ -58,6 +59,7 @@ struct EpisodeRow: View {
 struct PlayCapsule: View {
     let episode: Episode
     @Environment(AudioPlayer.self) private var player
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let current = player.isCurrent(episode)
@@ -79,8 +81,8 @@ struct PlayCapsule: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .foregroundStyle(current ? Color.black : Color.accentColor)
-            .background(current ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.accentColor.opacity(0.15)), in: Capsule())
+            .foregroundStyle(current ? Color.black : theme.color)
+            .background(current ? theme.color : theme.color.opacity(0.15), in: Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(playing ? "Pause \(episode.title)" : "Play \(episode.title)")

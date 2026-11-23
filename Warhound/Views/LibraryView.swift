@@ -36,6 +36,7 @@ struct LibraryView: View {
             }
         }
         .navigationTitle("Library")
+        .settingsButton()
         .navigationDestination(for: Podcast.self) { PodcastDetailView(podcast: $0) }
     }
 }

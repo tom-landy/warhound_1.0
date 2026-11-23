@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct WarhoundApp: App {
     @State private var player = AudioPlayer()
+    @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     private let container: ModelContainer
 
     init() {
@@ -21,7 +22,8 @@ struct WarhoundApp: App {
         WindowGroup {
             RootView()
                 .environment(player)
-                .tint(.accentColor)
+                .environment(\.theme, theme)
+                .tint(theme.color)
         }
         .modelContainer(container)
     }
