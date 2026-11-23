@@ -5,9 +5,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Xcode version
@@ -25,14 +30,17 @@ jobs:
             build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Debug-iphonesimulator/Warhound.app
       - name: Screenshots
+        timeout-minutes: 10
+        continue-on-error: true
         run: |
+          set -x
           UDID=$(xcrun simctl list devices available -j | python3 -c '
           import json,sys
           d=json.load(sys.stdin)["devices"]
           phones=[x for r in d if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")]
           pro=[x for x in phones if "Pro" in x["name"] and "Max" not in x["name"]]
           print((pro or phones)[-1]["udid"])')
-          xcrun simctl boot "$UDID"
+          echo "Using $UDID"
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --cellularBars 4
           xcrun simctl install "$UDID" build/Debug-iphonesimulator/Warhound.app
@@ -51,6 +59,8 @@ jobs:
           sleep 4
           xcrun simctl io "$UDID" screenshot shots/0-empty.png
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
+          if-no-files-found: warn
           name: screenshots
           path: shots/
