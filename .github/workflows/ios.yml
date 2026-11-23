@@ -4,6 +4,14 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      screenshots:
+        description: Take simulator screenshots and commit them to docs/screenshots
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -30,8 +38,8 @@ jobs:
             build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Debug-iphonesimulator/Warhound.app
       - name: Screenshots
-        timeout-minutes: 10
-        continue-on-error: true
+        if: github.event_name == 'workflow_dispatch' && inputs.screenshots
+        timeout-minutes: 12
         run: |
           set -x
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -44,23 +52,28 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --cellularBars 4
           xcrun simctl install "$UDID" build/Debug-iphonesimulator/Warhound.app
-          mkdir -p shots
+          mkdir -p docs/screenshots
+          cd docs/screenshots
           shoot() {
             xcrun simctl terminate "$UDID" com.tomlandy.Warhound 2>/dev/null || true
             xcrun simctl launch "$UDID" com.tomlandy.Warhound -demo "$@"
             sleep 6
-            xcrun simctl io "$UDID" screenshot "shots/$NAME.png"
+            xcrun simctl io "$UDID" screenshot "$NAME.png"
           }
           NAME=1-latest shoot -demoTab latest
           NAME=2-library shoot -demoTab library
           NAME=3-player shoot -demoTab latest -demoPlayer YES
           NAME=4-search shoot -demoTab search
+          xcrun simctl terminate "$UDID" com.tomlandy.Warhound || true
           xcrun simctl launch "$UDID" com.tomlandy.Warhound
-          sleep 4
-          xcrun simctl io "$UDID" screenshot shots/0-empty.png
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          if-no-files-found: warn
-          name: screenshots
-          path: shots/
+          sleep 5
+          xcrun simctl io "$UDID" screenshot 0-empty.png
+          sips --resampleWidth 590 *.png >/dev/null
+      - name: Commit screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          git commit -m "Update screenshots [skip ci]" || exit 0
+          git push
