@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct WarhoundApp: App {
+struct OrbitApp: App {
     @State private var player = AudioPlayer()
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     private let container: ModelContainer

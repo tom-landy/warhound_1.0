@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		A1B2C3D40000000000000001 /* Warhound.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Warhound.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D40000000000000001 /* Orbit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orbit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A1B2C3D40000000000000002 /* Warhound */ = {
+		A1B2C3D40000000000000002 /* Orbit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Warhound;
+			path = Orbit;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		A1B2C3D40000000000000004 = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D40000000000000002 /* Warhound */,
+				A1B2C3D40000000000000002 /* Orbit */,
 				A1B2C3D40000000000000005 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		A1B2C3D40000000000000005 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D40000000000000001 /* Warhound.app */,
+				A1B2C3D40000000000000001 /* Orbit.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A1B2C3D40000000000000006 /* Warhound */ = {
+		A1B2C3D40000000000000006 /* Orbit */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A1B2C3D4000000000000000B /* Build configuration list for PBXNativeTarget "Warhound" */;
+			buildConfigurationList = A1B2C3D4000000000000000B /* Build configuration list for PBXNativeTarget "Orbit" */;
 			buildPhases = (
 				A1B2C3D40000000000000007 /* Sources */,
 				A1B2C3D40000000000000003 /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A1B2C3D40000000000000002 /* Warhound */,
+				A1B2C3D40000000000000002 /* Orbit */,
 			);
-			name = Warhound;
+			name = Orbit;
 			packageProductDependencies = (
 			);
-			productName = Warhound;
-			productReference = A1B2C3D40000000000000001 /* Warhound.app */;
+			productName = Orbit;
+			productReference = A1B2C3D40000000000000001 /* Orbit.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A1B2C3D4000000000000000A /* Build configuration list for PBXProject "Warhound" */;
+			buildConfigurationList = A1B2C3D4000000000000000A /* Build configuration list for PBXProject "Orbit" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A1B2C3D40000000000000006 /* Warhound */,
+				A1B2C3D40000000000000006 /* Orbit */,
 			);
 		};
 /* End PBXProject section */
@@ -197,8 +197,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Warhound-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Warhound;
+				INFOPLIST_FILE = "Orbit-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Orbit;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -209,7 +209,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tomlandy.Warhound;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomlandy.Orbit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -228,8 +228,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Warhound-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Warhound;
+				INFOPLIST_FILE = "Orbit-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Orbit;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -240,7 +240,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tomlandy.Warhound;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomlandy.Orbit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -251,7 +251,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1B2C3D4000000000000000A /* Build configuration list for PBXProject "Warhound" */ = {
+		A1B2C3D4000000000000000A /* Build configuration list for PBXProject "Orbit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1B2C3D4000000000000000C /* Debug */,
@@ -260,7 +260,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A1B2C3D4000000000000000B /* Build configuration list for PBXNativeTarget "Warhound" */ = {
+		A1B2C3D4000000000000000B /* Build configuration list for PBXNativeTarget "Orbit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1B2C3D4000000000000000E /* Debug */,

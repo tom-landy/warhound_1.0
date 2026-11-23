@@ -29,14 +29,14 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project Warhound.xcodeproj \
-            -target Warhound \
+            -project Orbit.xcodeproj \
+            -target Orbit \
             -sdk iphonesimulator \
             -configuration Debug \
             SYMROOT="$PWD/build" \
             CODE_SIGNING_ALLOWED=NO \
             build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
-          test -d build/Debug-iphonesimulator/Warhound.app
+          test -d build/Debug-iphonesimulator/Orbit.app
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
         timeout-minutes: 12
@@ -51,12 +51,12 @@ jobs:
           echo "Using $UDID"
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --cellularBars 4
-          xcrun simctl install "$UDID" build/Debug-iphonesimulator/Warhound.app
+          xcrun simctl install "$UDID" build/Debug-iphonesimulator/Orbit.app
           mkdir -p docs/screenshots
           cd docs/screenshots
           shoot() {
-            xcrun simctl terminate "$UDID" com.tomlandy.Warhound 2>/dev/null || true
-            xcrun simctl launch "$UDID" com.tomlandy.Warhound -demo "$@"
+            xcrun simctl terminate "$UDID" com.tomlandy.Orbit 2>/dev/null || true
+            xcrun simctl launch "$UDID" com.tomlandy.Orbit -demo "$@"
             sleep 6
             xcrun simctl io "$UDID" screenshot "$NAME.png"
           }
@@ -67,8 +67,8 @@ jobs:
           NAME=5-settings shoot -demoTab latest -demoSettings YES -accentTheme teal
           NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
           NAME=7-library-blue shoot -demoTab library -accentTheme blue
-          xcrun simctl terminate "$UDID" com.tomlandy.Warhound || true
-          xcrun simctl launch "$UDID" com.tomlandy.Warhound
+          xcrun simctl terminate "$UDID" com.tomlandy.Orbit || true
+          xcrun simctl launch "$UDID" com.tomlandy.Orbit
           sleep 5
           xcrun simctl io "$UDID" screenshot 0-empty.png
           sips --resampleWidth 590 *.png >/dev/null

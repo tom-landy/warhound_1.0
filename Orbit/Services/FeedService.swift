@@ -47,7 +47,7 @@ enum FeedService {
 
     private static func fetch(_ url: URL) async throws -> ParsedFeed {
         var request = URLRequest(url: url)
-        request.setValue("Warhound/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("Orbit/1.0", forHTTPHeaderField: "User-Agent")
         let (data, _) = try await URLSession.shared.data(for: request)
         return try await Task.detached(priority: .userInitiated) { try FeedParser.parse(data) }.value
     }

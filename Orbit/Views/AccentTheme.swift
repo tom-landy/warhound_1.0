@@ -66,18 +66,11 @@ extension EnvironmentValues {
     }
 }
 
-/// The Warhound mark drawn natively, so it takes the current theme colour.
+/// The Orbit mark drawn natively, so it takes the current theme colour.
+/// Geometry matches design/logo-template.svg on a 1024 grid.
 struct LogoView: View {
     var theme: AccentTheme
     var showsBackground = true
-
-    private struct Bar { let x, y, w, h, opacity: Double }
-    private static let bars = [
-        Bar(x: 148, y: 452, w: 56, h: 120, opacity: 0.55),
-        Bar(x: 820, y: 452, w: 56, h: 120, opacity: 0.55),
-        Bar(x: 60, y: 482, w: 40, h: 60, opacity: 0.25),
-        Bar(x: 924, y: 482, w: 40, h: 60, opacity: 0.25),
-    ]
 
     var body: some View {
         GeometryReader { geo in
@@ -85,27 +78,30 @@ struct LogoView: View {
             ZStack {
                 if showsBackground {
                     LinearGradient(colors: [Color(hex: 0x23262D), Color(hex: 0x0C0D10)], startPoint: .top, endPoint: .bottom)
-                    RadialGradient(colors: [theme.bottom.opacity(0.22), .clear], center: UnitPoint(x: 0.5, y: 0.55),
+                    RadialGradient(colors: [theme.bottom.opacity(0.22), .clear], center: .center,
                                    startRadius: 0, endRadius: 512 * s)
                 }
-                Path { p in
-                    p.move(to: CGPoint(x: 292 * s, y: 340 * s))
-                    p.addLine(to: CGPoint(x: 400 * s, y: 700 * s))
-                    p.addLine(to: CGPoint(x: 512 * s, y: 430 * s))
-                    p.addLine(to: CGPoint(x: 624 * s, y: 700 * s))
-                    p.addLine(to: CGPoint(x: 732 * s, y: 340 * s))
-                }
-                .stroke(theme.gradient, style: StrokeStyle(lineWidth: 88 * s, lineCap: .round, lineJoin: .round))
-                ForEach(Self.bars, id: \.x) { bar in
-                    Capsule()
-                        .fill(theme.gradient)
-                        .opacity(bar.opacity)
-                        .frame(width: bar.w * s, height: bar.h * s)
-                        .position(x: (bar.x + bar.w / 2) * s, y: (bar.y + bar.h / 2) * s)
-                }
+                Self.mark(scale: s).fill(theme.gradient)
             }
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)
+    }
+
+    /// Open ring (gap of 68° at upper right), satellite in the gap, core in the middle.
+    static func mark(scale s: CGFloat) -> Path {
+        let c = 512.0, r = 250.0
+        var ring = Path()
+        let steps = 120
+        for i in 0...steps {
+            let degrees = -11 + 292 * Double(i) / Double(steps)
+            let a = degrees * .pi / 180
+            let point = CGPoint(x: (c + r * cos(a)) * s, y: (c + r * sin(a)) * s)
+            if i == 0 { ring.move(to: point) } else { ring.addLine(to: point) }
+        }
+        var shape = ring.strokedPath(StrokeStyle(lineWidth: 92 * s, lineCap: .round, lineJoin: .round))
+        shape.addEllipse(in: CGRect(x: (689 - 58) * s, y: (335 - 58) * s, width: 116 * s, height: 116 * s))
+        shape.addEllipse(in: CGRect(x: (512 - 74) * s, y: (512 - 74) * s, width: 148 * s, height: 148 * s))
+        return shape
     }
 }
