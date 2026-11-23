@@ -1,6 +1,22 @@
 # Warhound
 
-iPhone app, SwiftUI, iOS 17+. Needs Xcode 16 or later.
+A podcast player for iPhone. SwiftUI and SwiftData, iOS 17+, needs Xcode 16 or later.
+
+| Latest | Library | Player | Search |
+|---|---|---|---|
+| ![](docs/screenshots/1-latest.png) | ![](docs/screenshots/2-library.png) | ![](docs/screenshots/3-player.png) | ![](docs/screenshots/4-search.png) |
+
+Screenshots use built-in demo data. Regenerate them from Actions → iOS build → Run workflow.
+
+## What it does
+
+- Search Apple's podcast directory, or add any RSS feed by URL (private and paid feeds).
+- Follow shows. New episodes from everything you follow appear under Latest, with in-progress ones under Continue.
+- Streams episodes with background audio, lock screen and Control Centre controls, AirPlay,
+  back 15 / forward 30 seconds and 0.8× to 2× speed.
+- Remembers where you stopped in every episode. Swipe right on an episode to mark it played.
+
+Not built yet: downloads for offline listening, an Up Next queue, a sleep timer, chapters, background refresh, CarPlay.
 
 ## Run on your Mac
 
@@ -8,21 +24,35 @@ iPhone app, SwiftUI, iOS 17+. Needs Xcode 16 or later.
     cd warhound_1.0
     open Warhound.xcodeproj
 
-Pick an iPhone simulator in the toolbar and press Cmd+R.
+Pick an iPhone simulator in the toolbar and press Cmd+R. To see the app full of sample shows,
+Product → Scheme → Edit Scheme → Run → Arguments, and add `-demo`.
 
 ## Run on your iPhone
 
 1. Plug the phone in (or pair it over Wi-Fi in Window → Devices and Simulators).
 2. On the phone: Settings → Privacy & Security → Developer Mode → on, then restart.
 3. In Xcode: select the Warhound target → Signing & Capabilities → Team → your Apple ID
-   (add it under Xcode → Settings → Accounts if it isn't listed). A free Apple ID works;
-   apps signed with one expire after 7 days and need re-running from Xcode.
-4. If the bundle ID clashes, change `com.tomlandy.Warhound` to something unique.
-5. Pick the phone as the run destination and press Cmd+R. First time, trust the developer
+   (add it under Xcode → Settings → Accounts if it isn't listed). With a free Apple ID the app
+   expires after 7 days and needs re-running from Xcode.
+4. Change the bundle ID `com.tomlandy.Warhound` if it clashes. Pick the final one before your
+   first TestFlight upload, since it can't change after that.
+5. Pick the phone as the run destination and press Cmd+R. The first time, trust the developer
    on the phone under Settings → General → VPN & Device Management.
 
 ## Layout
 
-- `Warhound/` holds all source and assets. The Xcode project uses a synchronised folder,
-  so any file added here is picked up automatically, no project-file edits needed.
-- `.github/workflows/ios.yml` builds the app for the simulator on every push.
+    Warhound/
+      WarhoundApp.swift      app entry, storage setup
+      Models/                Podcast, Episode (SwiftData)
+      Services/              RSS parser, directory search, feed fetch and refresh
+      Player/AudioPlayer.swift   AVPlayer, lock screen, resume positions
+      Views/                 tabs, lists, mini player, full player
+      DemoData.swift         sample library for screenshots (-demo)
+    Warhound-Info.plist      background audio, export compliance
+    design/                  logo source (SVG) and 1024px render
+
+The Xcode project uses a synchronised folder, so any file added under `Warhound/` is picked up
+automatically with no project-file edits.
+
+`.github/workflows/ios.yml` builds for the simulator on every push. Running it by hand also
+takes screenshots and commits them to `docs/screenshots`.
