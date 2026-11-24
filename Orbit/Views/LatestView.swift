@@ -47,6 +47,7 @@ struct LatestView: View {
             }
         }
         .navigationTitle("Latest")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

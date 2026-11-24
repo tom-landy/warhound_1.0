@@ -52,6 +52,7 @@ struct DownloadsView: View {
             }
         }
         .navigationTitle("Downloads")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !downloaded.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {

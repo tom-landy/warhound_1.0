@@ -40,6 +40,7 @@ struct StatsView: View {
             }
         }
         .navigationTitle("Stats")
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: range) { selected = nil }
     }
 

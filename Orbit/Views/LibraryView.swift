@@ -54,6 +54,7 @@ struct LibraryView: View {
             }
         }
         .navigationTitle("Library")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {

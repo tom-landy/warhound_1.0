@@ -47,6 +47,7 @@ struct AllEpisodesView: View {
             }
         }
         .navigationTitle("All Episodes")
+        .navigationBarTitleDisplayMode(.inline)
         .refreshable { await FeedService.refreshAll(context: context) }
     }
 }

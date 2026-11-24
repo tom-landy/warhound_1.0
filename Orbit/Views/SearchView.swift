@@ -33,6 +33,7 @@ struct SearchView: View {
         .listStyle(.plain)
         .overlay { placeholder }
         .navigationTitle("Search")
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Shows")
         .autocorrectionDisabled()
         .task(id: query) { await search() }
