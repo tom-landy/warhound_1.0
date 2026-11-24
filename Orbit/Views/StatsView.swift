@@ -47,6 +47,9 @@ struct StatsView: View {
 
     private func chart(_ summary: ListeningStats.Summary) -> some View {
         let unit = summary.bucketUnit
+        // Whole hours on the axis once any bar passes an hour, minutes below that.
+        let useHours = (summary.buckets.map(\.seconds).max() ?? 0) >= 3600
+        let divisor: Double = useHours ? 3600 : 60
         let picked = selected.flatMap { date in
             summary.buckets.first { Calendar.current.isDate($0.date, equalTo: date, toGranularity: unit) }
         }
@@ -63,17 +66,17 @@ struct StatsView: View {
             }
             Chart(summary.buckets) { bucket in
                 BarMark(x: .value("Date", bucket.date, unit: unit),
-                        y: .value("Minutes", bucket.seconds / 60))
+                        y: .value(useHours ? "Hours" : "Minutes", bucket.seconds / divisor))
                     .foregroundStyle(theme.color.opacity(picked == nil || picked?.date == bucket.date ? 1 : 0.35))
                     .cornerRadius(4)
             }
             .chartXSelection(value: $selected)
             .chartYAxis {
-                AxisMarks(position: .leading) { value in
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4, roundLowerBound: true, roundUpperBound: true)) { value in
                     AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
                     AxisValueLabel {
-                        if let minutes = value.as(Double.self) {
-                            Text(minutes >= 60 ? "\(Int(minutes / 60))h" : "\(Int(minutes))m")
+                        if let amount = value.as(Double.self) {
+                            Text(useHours ? Self.hoursLabel(amount) : "\(Int(amount))m")
                         }
                     }
                 }
@@ -88,6 +91,10 @@ struct StatsView: View {
         }
         .padding()
         .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private static func hoursLabel(_ hours: Double) -> String {
+        hours == hours.rounded() ? "\(Int(hours))h" : String(format: "%.1fh", hours)
     }
 
     // MARK: - Top shows
