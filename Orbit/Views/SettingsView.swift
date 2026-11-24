@@ -39,7 +39,7 @@ struct SettingsView: View {
                         }
                     }
                     .padding(.vertical, 6)
-                    Toggle("Match app icon", isOn: $matchIcon)
+                    Toggle("Match App Icon", isOn: $matchIcon)
                 } header: {
                     Text("Colour")
                 } footer: {
@@ -47,15 +47,15 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("Keep downloaded per show", selection: $keepPerShow) {
+                    Picker("Keep Downloaded per Show", selection: $keepPerShow) {
                         ForEach([1, 2, 3, 5], id: \.self) { Text("\($0) latest").tag($0) }
                     }
-                    Toggle("Automatic downloads on Wi-Fi only", isOn: $wifiOnly)
-                    Toggle("Remove after playing", isOn: $removePlayed)
+                    Toggle("Automatic Downloads on Wi-Fi Only", isOn: $wifiOnly)
+                    Toggle("Remove After Playing", isOn: $removePlayed)
                     NavigationLink {
                         DownloadsView()
                     } label: {
-                        LabeledContent("Manage downloads", value: storageUsed)
+                        LabeledContent("Manage Downloads", value: storageUsed)
                     }
                 } header: {
                     Text("Downloads")
@@ -63,15 +63,15 @@ struct SettingsView: View {
                     Text("Orbit keeps the newest unplayed episodes of every show you follow downloaded. Episodes you download by hand go on any connection. Turn this off for one show from the ⋯ menu on its page.")
                 }
 
-                Section("Your shows") {
+                Section("Your Shows") {
                     Button {
                         showsImport = true
                     } label: {
-                        Label("Import from another app", systemImage: "square.and.arrow.down")
+                        Label("Import from Another App", systemImage: "square.and.arrow.down")
                     }
                     if let exportURL, !subscriptions.isEmpty {
                         ShareLink(item: exportURL) {
-                            Label("Export \(subscriptions.count) shows (OPML)", systemImage: "square.and.arrow.up")
+                            Label("Export \(subscriptions.count) Shows (OPML)", systemImage: "square.and.arrow.up")
                         }
                     }
                 }

@@ -33,15 +33,15 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
 
         latest.tabTitle = "Latest"
         latest.tabImage = UIImage(systemName: "clock")
-        latest.emptyViewTitleVariants = ["Nothing new"]
+        latest.emptyViewTitleVariants = ["Nothing New"]
         latest.emptyViewSubtitleVariants = ["Follow shows on your iPhone"]
         downloaded.tabTitle = "Downloaded"
         downloaded.tabImage = UIImage(systemName: "arrow.down.circle")
-        downloaded.emptyViewTitleVariants = ["No downloads"]
+        downloaded.emptyViewTitleVariants = ["No Downloads"]
         downloaded.emptyViewSubtitleVariants = ["Download episodes on your iPhone to play them without signal"]
         library.tabTitle = "Library"
         library.tabImage = UIImage(systemName: "square.grid.2x2")
-        library.emptyViewTitleVariants = ["No shows yet"]
+        library.emptyViewTitleVariants = ["No Shows Yet"]
 
         // With no signal, open on what can actually play.
         let tabs = CPTabBarTemplate(templates: [latest, downloaded, library])

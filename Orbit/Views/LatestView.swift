@@ -33,11 +33,11 @@ struct LatestView: View {
                 EmptyLibraryView { tab = .search }
             } else if subscribed.isEmpty {
                 ContentUnavailableView {
-                    Label("No downloads yet", systemImage: "arrow.down.circle")
+                    Label("No Downloads Yet", systemImage: "arrow.down.circle")
                 } description: {
-                    Text("Downloaded episodes show here, ready for when the signal drops.")
+                    Text("Downloaded Episodes")
                 } actions: {
-                    Button("Show all episodes") { downloadedOnly = false }
+                    Button("Show All Episodes") { downloadedOnly = false }
                 }
             } else {
                 List {
@@ -82,14 +82,14 @@ struct EmptyLibraryView: View {
                 .frame(width: 96, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .padding(.bottom, 8)
-            Text("Nothing to play yet")
+            Text("Nothing to Play Yet")
         } description: {
-            Text("Follow a few shows and new episodes land here.")
+            Text("All your shows appear here.")
         } actions: {
-            Button("Find podcasts", action: findPodcasts)
+            Button("Find Podcasts", action: findPodcasts)
                 .buttonStyle(.borderedProminent)
                 .foregroundStyle(.black)
-            Button("Import from another app") { showsImport = true }
+            Button("Import from Another App") { showsImport = true }
         }
         .sheet(isPresented: $showsImport) { ImportView() }
     }

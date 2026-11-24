@@ -26,7 +26,7 @@ struct PodcastDetailView: View {
                 HStack {
                     Text("\(episodes.count) episodes")
                     Spacer()
-                    Button(hidePlayed ? "Show all" : "Hide played") {
+                    Button(hidePlayed ? "Show All" : "Hide Played") {
                         withAnimation { hidePlayed.toggle() }
                     }
                     .font(.subheadline)
@@ -41,12 +41,12 @@ struct PodcastDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Toggle(isOn: $podcast.autoDownload) {
-                        Label("Keep latest downloaded", systemImage: "arrow.down.circle")
+                        Label("Keep Latest Downloaded", systemImage: "arrow.down.circle")
                     }
                     if podcast.episodes.contains(where: \.isDownloaded) {
                         Button(role: .destructive) {
                             for e in podcast.episodes where e.isDownloaded { downloads.remove(e) }
-                        } label: { Label("Remove downloads", systemImage: "trash") }
+                        } label: { Label("Remove Downloads", systemImage: "trash") }
                     }
                     Divider()
                     Button {
@@ -55,10 +55,10 @@ struct PodcastDetailView: View {
                             e.playbackPosition = 0
                             downloads.episodePlayed(e)
                         }
-                    } label: { Label("Mark all as played", systemImage: "checkmark.circle") }
+                    } label: { Label("Mark All as Played", systemImage: "checkmark.circle") }
                     Button {
                         UIPasteboard.general.url = podcast.feedURL
-                    } label: { Label("Copy feed link", systemImage: "link") }
+                    } label: { Label("Copy Feed Link", systemImage: "link") }
                     if podcast.isSubscribed {
                         Button(role: .destructive) { podcast.isSubscribed = false } label: {
                             Label("Unfollow", systemImage: "minus.circle")

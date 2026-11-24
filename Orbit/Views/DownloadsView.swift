@@ -35,12 +35,12 @@ struct DownloadsView: View {
                                 } else if downloads.wifiOnly.contains(episode.key) {
                                     HStack {
                                         Text("Waiting for Wi-Fi").font(.caption).foregroundStyle(.secondary)
-                                        Button("Use mobile data") { downloads.downloadNow(episode) }
+                                        Button("Use Mobile Data") { downloads.downloadNow(episode) }
                                             .font(.caption.weight(.semibold))
                                             .buttonStyle(.borderless)
                                     }
                                 } else {
-                                    Text("Waiting for connection").font(.caption).foregroundStyle(.secondary)
+                                    Text("Waiting for Connection").font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                             DownloadButton(episode: episode)
@@ -63,9 +63,9 @@ struct DownloadsView: View {
         .overlay {
             if downloaded.isEmpty && downloads.active.isEmpty {
                 ContentUnavailableView {
-                    Label("No downloads", systemImage: "arrow.down.circle")
+                    Label("No Downloads", systemImage: "arrow.down.circle")
                 } description: {
-                    Text("Tap the download button on any episode. New episodes from shows you follow download by themselves on Wi-Fi.")
+                    Text("Tap to download on any episode. New episodes download automatically on Wi-Fi.")
                 }
             }
         }
@@ -73,7 +73,7 @@ struct DownloadsView: View {
         .toolbar {
             if !downloaded.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Delete all", role: .destructive) { confirmDeleteAll = true }
+                    Button("Delete All", role: .destructive) { confirmDeleteAll = true }
                 }
             }
         }

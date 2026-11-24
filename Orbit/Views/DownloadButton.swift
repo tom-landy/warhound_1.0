@@ -23,7 +23,7 @@ struct DownloadButton: View {
         .contextMenu {
             if state == .downloaded {
                 Button(role: .destructive) { downloads.remove(episode) } label: {
-                    Label("Remove download", systemImage: "trash")
+                    Label("Remove Download", systemImage: "trash")
                 }
             }
         }

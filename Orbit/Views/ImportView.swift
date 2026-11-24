@@ -82,7 +82,7 @@ struct ImportView: View {
                 case .done: summary
                 }
             }
-            .navigationTitle("Import shows")
+            .navigationTitle("Import Shows")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -108,7 +108,7 @@ struct ImportView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Bring your shows over")
+                    Text("Bring Your Shows Over")
                         .font(.title3.bold())
                     Text("Export your subscriptions from your current app as an OPML file, then choose it here. You can also open the file straight into Orbit from the share sheet or Files.")
                         .foregroundStyle(.secondary)
@@ -117,7 +117,7 @@ struct ImportView: View {
                 Button {
                     picking = true
                 } label: {
-                    Label("Choose OPML file", systemImage: "doc.badge.plus")
+                    Label("Choose OPML File", systemImage: "doc.badge.plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
@@ -131,7 +131,7 @@ struct ImportView: View {
                         .foregroundStyle(.orange)
                 }
             }
-            Section("Where to find the export") {
+            Section("Where to Find the Export") {
                 HowTo(app: "Overcast", steps: "Settings → Export OPML (or overcast.fm → Account → Export OPML)")
                 HowTo(app: "Pocket Casts", steps: "Profile → Settings → Import & Export → Export podcasts")
                 HowTo(app: "Castro", steps: "Settings → User Data → Export Subscriptions")
@@ -163,12 +163,12 @@ struct ImportView: View {
     private var summary: some View {
         List {
             Section {
-                LabeledContent("Now following", value: "\(importer.added)")
+                LabeledContent("Now Following", value: "\(importer.added)")
                 if importer.alreadyFollowing > 0 {
-                    LabeledContent("Already following", value: "\(importer.alreadyFollowing)")
+                    LabeledContent("Already Following", value: "\(importer.alreadyFollowing)")
                 }
                 if !importer.failures.isEmpty {
-                    LabeledContent("Couldn't load", value: "\(importer.failures.count)")
+                    LabeledContent("Couldn't Load", value: "\(importer.failures.count)")
                 }
             }
             if !importer.failures.isEmpty {
@@ -179,12 +179,12 @@ struct ImportView: View {
                             Text(feed.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
-                    Button("Try these again") {
+                    Button("Try These Again") {
                         let retry = importer.failures
                         Task { await importer.run(feeds: retry, context: context) }
                     }
                 } header: {
-                    Text("Couldn't load")
+                    Text("Couldn't Load")
                 } footer: {
                     Text("Usually a weak signal or a feed that no longer exists. Try again on Wi-Fi.")
                 }

@@ -46,7 +46,7 @@ struct SearchView: View {
                     .accessibilityLabel("Add by feed URL")
             }
         }
-        .alert("Add a feed", isPresented: $showsAddFeed) {
+        .alert("Add a Feed", isPresented: $showsAddFeed) {
             TextField("https://example.com/feed.xml", text: $feedText)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
@@ -66,9 +66,9 @@ struct SearchView: View {
         if isSearching && results.isEmpty {
             ProgressView()
         } else if let error {
-            ContentUnavailableView("Search failed", systemImage: "wifi.exclamationmark", description: Text(error))
+            ContentUnavailableView("Search Failed", systemImage: "wifi.exclamationmark", description: Text(error))
         } else if query.isEmpty {
-            ContentUnavailableView("Find a show", systemImage: "magnifyingglass",
+            ContentUnavailableView("Find a Show", systemImage: "magnifyingglass",
                                    description: Text("Search Apple's podcast directory, or add a feed by URL with the link button."))
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
@@ -107,7 +107,7 @@ struct PodcastLoaderView: View {
             if let podcast {
                 PodcastDetailView(podcast: podcast)
             } else if let error {
-                ContentUnavailableView("Couldn't load this show", systemImage: "exclamationmark.triangle", description: Text(error))
+                ContentUnavailableView("Couldn't Load This Show", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {
                 ProgressView()
             }
