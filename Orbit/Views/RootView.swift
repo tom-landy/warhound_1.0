@@ -61,6 +61,11 @@ struct RootView: View {
             case .search: tab = .search
             }
         }
+        .onChange(of: quickActions.open, initial: true) { _, id in
+            guard let id else { return }
+            quickActions.open = nil
+            openSpotlightResult(id)
+        }
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
             guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
             openSpotlightResult(id)

@@ -40,8 +40,18 @@ enum SpotlightIndex {
         }
         OrbitShortcuts.updateAppShortcutParameters()
         let index = CSSearchableIndex.default()
-        index.deleteAllSearchableItems { _ in
-            index.indexSearchableItems(items)
+        if #available(iOS 18.0, *) {
+            let showEntities = shows.map { ShowEntity(id: $0.feedURL.absoluteString, title: $0.title) }
+            let episodeEntities = shows.flatMap { $0.sortedEpisodes.prefix(20) }.map(EpisodeEntity.init)
+            Task {
+                try? await index.deleteAllSearchableItems()
+                try? await index.indexAppEntities(showEntities)
+                try? await index.indexAppEntities(episodeEntities)
+            }
+        } else {
+            index.deleteAllSearchableItems { _ in
+                index.indexSearchableItems(items)
+            }
         }
     }
 }

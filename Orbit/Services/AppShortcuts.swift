@@ -1,4 +1,5 @@
 import AppIntents
+import CoreSpotlight
 import SwiftData
 
 // Siri phrases and Shortcuts actions. Play/pause and skip live in WidgetShared/PlaybackIntents.swift.
@@ -142,6 +143,219 @@ struct PlayShowIntent: AudioPlaybackIntent {
     }
 }
 
+// MARK: - Episodes
+
+struct EpisodeEntity: AppEntity {
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Episode"
+    static let defaultQuery = EpisodeQuery()
+
+    var id: String
+    var title: String
+    var show: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(title)", subtitle: "\(show)")
+    }
+
+    @MainActor init(_ episode: Episode) {
+        id = episode.key
+        title = episode.title
+        show = episode.podcast?.title ?? ""
+    }
+
+    init(id: String, title: String, show: String) {
+        self.id = id
+        self.title = title
+        self.show = show
+    }
+}
+
+struct EpisodeQuery: EntityStringQuery {
+    func entities(for identifiers: [String]) async throws -> [EpisodeEntity] {
+        await MainActor.run {
+            identifiers.compactMap { key in Self.episode(key).map(EpisodeEntity.init) }
+        }
+    }
+
+    func entities(matching string: String) async throws -> [EpisodeEntity] {
+        let wanted = string.lowercased()
+        return await MainActor.run {
+            Self.recent(limit: 400)
+                .filter { $0.title.lowercased().contains(wanted) || ($0.podcast?.title.lowercased().contains(wanted) ?? false) }
+                .prefix(25).map(EpisodeEntity.init)
+        }
+    }
+
+    func suggestedEntities() async throws -> [EpisodeEntity] {
+        await MainActor.run {
+            let queued = AudioPlayer.shared.queue()
+            let fresh = Self.recent(limit: 200).filter { !$0.isPlayed && !$0.isQueued }.prefix(15)
+            return (queued + fresh).map(EpisodeEntity.init)
+        }
+    }
+
+    @MainActor static func episode(_ key: String) -> Episode? {
+        guard let context = AppEnvironment.container?.mainContext else { return nil }
+        var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
+    @MainActor static func recent(limit: Int) -> [Episode] {
+        guard let context = AppEnvironment.container?.mainContext else { return [] }
+        var descriptor = FetchDescriptor<Episode>(sortBy: [SortDescriptor(\.pubDate, order: .reverse)])
+        descriptor.fetchLimit = limit
+        return ((try? context.fetch(descriptor)) ?? []).filter { $0.podcast?.isSubscribed == true }
+    }
+
+    @MainActor static func podcast(_ show: ShowEntity) -> Podcast? {
+        try? AppEnvironment.container?.mainContext.fetch(FetchDescriptor<Podcast>())
+            .first { $0.feedURL.absoluteString == show.id }
+    }
+}
+
+struct PlayEpisodeEntityIntent: AudioPlaybackIntent {
+    static let title: LocalizedStringResource = "Play Episode"
+
+    @Parameter(title: "Episode") var episode: EpisodeEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        AudioPlayer.shared.play(key: episode.id)
+        return .result()
+    }
+}
+
+enum QueuePosition: String, AppEnum {
+    case next, last
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Position"
+    static let caseDisplayRepresentations: [QueuePosition: DisplayRepresentation] = [
+        .next: "Play Next", .last: "End of Up Next",
+    ]
+}
+
+struct AddToUpNextIntent: AppIntent {
+    static let title: LocalizedStringResource = "Add to Up Next"
+
+    @Parameter(title: "Episode") var episode: EpisodeEntity
+    @Parameter(title: "Position", default: .last) var position: QueuePosition
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let found = EpisodeQuery.episode(episode.id) else { return .result(dialog: "Couldn't find that episode.") }
+        if position == .next { AudioPlayer.shared.playNext(found) } else { AudioPlayer.shared.addToQueue(found) }
+        return .result(dialog: "Added \(found.title) to Up Next.")
+    }
+}
+
+struct AddLatestToUpNextIntent: AppIntent {
+    static let title: LocalizedStringResource = "Add Latest Episode to Up Next"
+    static let description = IntentDescription("Adds a show's newest unplayed episode to Up Next.")
+
+    @Parameter(title: "Show", requestValueDialog: "Which show?") var show: ShowEntity
+
+    init() {}
+    init(show: ShowEntity) { self.show = show }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let podcast = EpisodeQuery.podcast(show),
+              let latest = podcast.sortedEpisodes.first(where: { !$0.isPlayed }) ?? podcast.sortedEpisodes.first
+        else { return .result(dialog: "Couldn't find that show.") }
+        AudioPlayer.shared.addToQueue(latest)
+        return .result(dialog: "Added \(latest.title) to Up Next.")
+    }
+}
+
+struct MarkPlayedIntent: AppIntent {
+    static let title: LocalizedStringResource = "Mark as Played"
+
+    @Parameter(title: "Episode") var episode: EpisodeEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        if let found = EpisodeQuery.episode(episode.id) {
+            found.isPlayed = true
+            found.playbackPosition = 0
+            found.queueOrder = nil
+            DownloadManager.shared.episodePlayed(found)
+            try? found.modelContext?.save()
+        }
+        return .result()
+    }
+}
+
+enum SpeedOption: String, AppEnum {
+    case x08 = "0.8", x10 = "1", x12 = "1.2", x15 = "1.5", x175 = "1.75", x20 = "2"
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Speed"
+    static let caseDisplayRepresentations: [SpeedOption: DisplayRepresentation] = [
+        .x08: DisplayRepresentation(title: "0.8×", synonyms: ["0.8", "point eight"]),
+        .x10: DisplayRepresentation(title: "1×", synonyms: ["normal", "1", "normal speed"]),
+        .x12: DisplayRepresentation(title: "1.2×", synonyms: ["1.2"]),
+        .x15: DisplayRepresentation(title: "1.5×", synonyms: ["1.5", "one and a half"]),
+        .x175: DisplayRepresentation(title: "1.75×", synonyms: ["1.75"]),
+        .x20: DisplayRepresentation(title: "2×", synonyms: ["2", "double", "double speed"]),
+    ]
+
+    var value: Float { Float(rawValue) ?? 1 }
+}
+
+struct SetSpeedIntent: AppIntent {
+    static let title: LocalizedStringResource = "Set Playback Speed"
+
+    @Parameter(title: "Speed", requestValueDialog: "Which speed?") var speed: SpeedOption
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        AudioPlayer.shared.speed = speed.value
+        return .result(dialog: "Speed set to \(NowPlayingView.speedLabel(speed.value)).")
+    }
+}
+
+struct DownloadNewEpisodesIntent: AppIntent {
+    static let title: LocalizedStringResource = "Download New Episodes"
+    static let description = IntentDescription("Checks your shows and downloads their latest episodes. Useful as an automation when you get home.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let context = AppEnvironment.container?.mainContext else { return .result(dialog: "Orbit isn't ready.") }
+        await FeedService.refreshAll(context: context)
+        return .result(dialog: "Checking for new episodes. Downloads continue in the background.")
+    }
+}
+
+// MARK: - Opening from Spotlight
+
+struct OpenShowIntent: OpenIntent {
+    static let title: LocalizedStringResource = "Open Show"
+    @Parameter(title: "Show") var target: ShowEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        QuickActions.shared.open = SpotlightIndex.showPrefix + target.id
+        return .result()
+    }
+}
+
+struct OpenEpisodeIntent: OpenIntent {
+    static let title: LocalizedStringResource = "Open Episode"
+    @Parameter(title: "Episode") var target: EpisodeEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        QuickActions.shared.open = SpotlightIndex.episodePrefix + target.id
+        return .result()
+    }
+}
+
+@available(iOS 18.0, *)
+extension ShowEntity: IndexedEntity {}
+
+@available(iOS 18.0, *)
+extension EpisodeEntity: IndexedEntity {}
+
 struct OrbitShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: PlayShowIntent(),
@@ -162,6 +376,16 @@ struct OrbitShortcuts: AppShortcutsProvider {
         AppShortcut(intent: SleepTimerIntent(),
                     phrases: ["Set a sleep timer in \(.applicationName)"],
                     shortTitle: "Sleep Timer", systemImageName: "moon.zzz")
+        AppShortcut(intent: AddLatestToUpNextIntent(),
+                    phrases: ["Add the latest \(\.$show) to Up Next in \(.applicationName)",
+                              "Queue the latest \(\.$show) in \(.applicationName)"],
+                    shortTitle: "Add Latest to Up Next", systemImageName: "text.line.last.and.arrowtriangle.forward")
+        AppShortcut(intent: SetSpeedIntent(),
+                    phrases: ["Change the speed in \(.applicationName)", "Set \(.applicationName) speed"],
+                    shortTitle: "Set Speed", systemImageName: "gauge.with.dots.needle.67percent")
+        AppShortcut(intent: DownloadNewEpisodesIntent(),
+                    phrases: ["Download new episodes in \(.applicationName)", "Check for new episodes in \(.applicationName)"],
+                    shortTitle: "Download New", systemImageName: "arrow.down.circle")
         AppShortcut(intent: SkipForwardIntent(),
                     phrases: ["Skip forward in \(.applicationName)"],
                     shortTitle: "Skip Forward", systemImageName: "goforward.30")

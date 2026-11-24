@@ -12,6 +12,8 @@ final class QuickActions {
     }
 
     var pending: Action?
+    /// A show or episode to open, from Spotlight or Siri ("show:…" / "episode:…").
+    var open: String?
 
     func handle(_ type: String) {
         pending = Action(rawValue: type.components(separatedBy: ".").last ?? "")
