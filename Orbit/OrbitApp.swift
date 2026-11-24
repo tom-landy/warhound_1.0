@@ -19,7 +19,7 @@ struct OrbitApp: App {
         let demo = DemoData.isActive
         let config = ModelConfiguration(isStoredInMemoryOnly: demo)
         do {
-            container = try ModelContainer(for: Podcast.self, Episode.self, configurations: config)
+            container = try ModelContainer(for: Podcast.self, Episode.self, ListeningDay.self, configurations: config)
         } catch {
             fatalError("Could not open the library: \(error)")
         }
@@ -30,6 +30,7 @@ struct OrbitApp: App {
             DemoData.seed(container.mainContext)
         } else {
             DownloadManager.shared.cleanUp()
+            AudioPlayer.shared.restoreLastEpisode()
         }
     }
 

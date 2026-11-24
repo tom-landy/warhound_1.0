@@ -22,6 +22,8 @@ enum AccentTheme: String, CaseIterable, Identifiable {
     /// nil means the primary icon (orange).
     var iconName: String? { self == .orange ? nil : "AppIcon-\(rawValue)" }
 
+    var hexValues: (base: UInt32, top: UInt32, bottom: UInt32) { hex }
+
     private var hex: (base: UInt32, top: UInt32, bottom: UInt32) {
         switch self {
         case .orange: (0xF26A2A, 0xFFB25C, 0xF2551D)

@@ -10,6 +10,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var context
     @State private var tab: AppTab = .latest
     @State private var importRequest: ImportRequest?
+    @State private var demoSheet: String?
 
     var body: some View {
         @Bindable var player = player
@@ -31,6 +32,11 @@ struct RootView: View {
             NowPlayingView()
         }
         .sheet(item: $importRequest) { ImportView(file: $0.file) }
+        .sheet(isPresented: Binding(get: { demoSheet != nil }, set: { if !$0 { demoSheet = nil } })) {
+            NavigationStack {
+                if demoSheet == "stats" { StatsView() } else { WidgetGalleryView() }
+            }
+        }
         .onOpenURL { url in
             if url.isFileURL { importRequest = ImportRequest(file: url) }
         }
@@ -38,6 +44,8 @@ struct RootView: View {
             if DemoData.isActive {
                 if let t = DemoData.apply(player: player, context: context) { tab = t }
                 if UserDefaults.standard.bool(forKey: "demoImport") { importRequest = ImportRequest() }
+                if UserDefaults.standard.bool(forKey: "demoStats") { demoSheet = "stats" }
+                if UserDefaults.standard.bool(forKey: "demoWidgets") { demoSheet = "widgets" }
             } else {
                 await FeedService.refreshAll(context: context)
             }

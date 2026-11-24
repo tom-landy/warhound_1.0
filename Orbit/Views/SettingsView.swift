@@ -64,6 +64,11 @@ struct SettingsView: View {
                 }
 
                 Section("Your Shows") {
+                    NavigationLink {
+                        StatsView()
+                    } label: {
+                        Label("Listening Stats", systemImage: "chart.bar")
+                    }
                     Button {
                         showsImport = true
                     } label: {
@@ -91,7 +96,10 @@ struct SettingsView: View {
             .sheet(isPresented: $showsImport) { ImportView() }
             .onChange(of: keepPerShow) { FeedService.keepLatestDownloaded(context: context) }
             .task(id: subscriptions.count) { exportURL = OPML.exportFile(subscriptions) }
-            .onChange(of: theme) { _, new in new.applyIcon(matchIcon) }
+            .onChange(of: theme) { _, new in
+                new.applyIcon(matchIcon)
+                WidgetSync.schedule()
+            }
             .onChange(of: matchIcon) { _, new in theme.applyIcon(new) }
         }
     }

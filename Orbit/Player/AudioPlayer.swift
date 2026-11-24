@@ -62,6 +62,11 @@ final class AudioPlayer {
     private var lastSaved: Date = .distantPast
     private var artwork: MPMediaItemArtwork?
     private var sleepTask: Task<Void, Never>?
+    // Listening stats, flushed every 30 seconds and on pause or episode change.
+    private var pendingListened: Double = 0
+    private var pendingContent: Double = 0
+    private var lastTickAt: Date?
+    private static let lastEpisodeKey = "lastEpisodeKey"
 
     init() {
         let saved = UserDefaults.standard.float(forKey: "playbackSpeed")
@@ -95,9 +100,20 @@ final class AudioPlayer {
 
     func isCurrent(_ episode: Episode) -> Bool { self.episode?.key == episode.key }
 
+    /// Plays an episode by its key (from a widget or the watch).
+    func play(key: String) {
+        guard let context = AppEnvironment.container?.mainContext else { return }
+        var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
+        descriptor.fetchLimit = 1
+        guard let found = try? context.fetch(descriptor).first else { return }
+        if isCurrent(found) { resume() } else { load(found, autoplay: true) }
+    }
+
     func load(_ episode: Episode, autoplay: Bool) {
         saveProgress()
+        flushStats()
         self.episode = episode
+        UserDefaults.standard.set(episode.key, forKey: Self.lastEpisodeKey)
         if episode.isPlayed { episode.isPlayed = false; episode.playbackPosition = 0 }
         episode.lastPlayedAt = .now
         episode.queueOrder = nil // it's playing now, so it leaves Up Next
@@ -138,6 +154,7 @@ final class AudioPlayer {
     private func announce() {
         NotificationCenter.default.post(name: .orbitPlaybackChanged, object: nil)
         WatchSync.shared.schedulePush()
+        WidgetSync.schedule()
     }
 
     func togglePlayPause() {
@@ -153,6 +170,23 @@ final class AudioPlayer {
     func pause() {
         player.pause()
         saveProgress()
+        flushStats()
+    }
+
+    /// Puts the last episode back in the player (paused) after the app was closed.
+    func restoreLastEpisode() {
+        guard episode == nil, let key = UserDefaults.standard.string(forKey: Self.lastEpisodeKey),
+              let context = AppEnvironment.container?.mainContext else { return }
+        var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
+        descriptor.fetchLimit = 1
+        guard let saved = try? context.fetch(descriptor).first, !saved.isPlayed else { return }
+        load(saved, autoplay: false)
+    }
+
+    private func flushStats(finished: Int = 0) {
+        defer { pendingListened = 0; pendingContent = 0 }
+        guard let episode, let context = AppEnvironment.container?.mainContext else { return }
+        ListeningStats.record(episode, listened: pendingListened, content: pendingContent, finished: finished, context: context)
     }
 
     func skip(by seconds: TimeInterval) {
@@ -274,6 +308,18 @@ final class AudioPlayer {
     // MARK: - Internals
 
     private func tick(_ seconds: TimeInterval) {
+        if isPlaying && !isBuffering {
+            let now = Date.now
+            if let last = lastTickAt {
+                let elapsed = min(2, now.timeIntervalSince(last))
+                pendingListened += elapsed
+                pendingContent += elapsed * Double(speed)
+            }
+            lastTickAt = now
+            if pendingListened >= 30 { flushStats() }
+        } else {
+            lastTickAt = nil
+        }
         guard seconds.isFinite, !isScrubbing else { return }
         currentTime = seconds
         if Date.now.timeIntervalSince(lastSaved) > 5 { saveProgress() }
@@ -296,6 +342,7 @@ final class AudioPlayer {
                 try? episode.modelContext?.save()
                 self.currentTime = 0
                 DownloadManager.shared.episodePlayed(episode)
+                self.flushStats(finished: 1)
                 if self.sleepTimer == .endOfEpisode {
                     self.setSleepTimer(.off)
                 } else {

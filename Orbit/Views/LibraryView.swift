@@ -40,6 +40,14 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
+                    StatsView()
+                } label: {
+                    Image(systemName: "chart.bar")
+                }
+                .accessibilityLabel("Stats")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
                     DownloadsView()
                 } label: {
                     Image(systemName: "arrow.down.circle")
