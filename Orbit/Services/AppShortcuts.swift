@@ -79,7 +79,7 @@ struct SleepTimerIntent: AppIntent {
         case .endOfEpisode: player.setSleepTimer(.endOfEpisode)
         case .off: player.setSleepTimer(.off)
         }
-        return .result(dialog: duration == .off ? "Sleep timer off." : "Sleep timer set.")
+        return .result(dialog: IntentDialog(stringLiteral: duration == .off ? "Sleep timer off." : "Sleep timer set."))
     }
 }
 
