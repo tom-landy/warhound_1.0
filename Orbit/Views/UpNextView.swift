@@ -26,7 +26,9 @@ struct UpNextView: View {
                     }
                     .onMove { player.moveQueue(from: $0, to: $1) }
                     .onDelete { offsets in
-                        for i in offsets { player.removeFromQueue(queue[i]) }
+                        withAnimation(.snappy) {
+                            for i in offsets { player.removeFromQueue(queue[i]) }
+                        }
                     }
                 } header: {
                     Text("Up Next")
