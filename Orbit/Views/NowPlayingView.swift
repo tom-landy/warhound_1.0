@@ -172,7 +172,10 @@ private struct RoutePicker: UIViewRepresentable {
 
 struct EpisodeNotesView: View {
     let episode: Episode
+    @Environment(AudioPlayer.self) private var player
     @Environment(\.dismiss) private var dismiss
+
+    private var playing: Bool { player.isCurrent(episode) && player.isPlaying }
 
     var body: some View {
         NavigationStack {
@@ -190,9 +193,16 @@ struct EpisodeNotesView: View {
                 .padding()
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarLeading) {
                     ShareLink(item: episode.shareURL, subject: Text(episode.title),
                               message: Text("\(episode.podcast?.title ?? "") – \(episode.title)"))
+                    Button {
+                        player.play(episode)
+                    } label: {
+                        Image(systemName: playing ? "pause.fill" : "play.fill")
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                    .accessibilityLabel(playing ? "Pause" : "Play")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
