@@ -64,5 +64,9 @@ the change in `Orbit/Views/AccentTheme.swift` (colours and the in-app `LogoView`
 The Xcode project uses a synchronised folder, so any file added under `Orbit/` is picked up
 automatically with no project-file edits.
 
+Version: shown in Settings → About. Each update goes up by one (0.10, 0.11, 0.12…);
+run `tools/bump-version.sh` before committing an update. It bumps the iPhone and watch apps
+together and keeps the build number in step (0.11 → build 11), which TestFlight needs.
+
 `.github/workflows/ios.yml` builds for the simulator on every push. Running it by hand also
 takes screenshots and commits them to `docs/screenshots`.
