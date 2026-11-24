@@ -60,7 +60,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Downloads")
                 } footer: {
-                    Text("Orbit keeps the newest unplayed episodes of every show you follow downloaded. Episodes you download by hand go on any connection. Turn this off for one show from the ⋯ menu on its page.")
+                    Text("Wi-Fi only applies to automatic downloads. Episodes you tap to download use mobile data if there's no Wi-Fi. To stop automatic downloads for one show, use the ⋯ menu on its page.")
                 }
 
                 Section("Your Shows") {
