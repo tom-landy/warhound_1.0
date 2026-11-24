@@ -123,6 +123,7 @@ extension RootView {
     fileprivate func ipadSheetContent(_ sheet: IPadSheet) -> some View {
         switch sheet {
         case .latest: LatestView(tab: $tab)
+        case .allEpisodes: AllEpisodesView()
         case .library: LibraryView(tab: $tab)
         case .search: SearchView()
         case .upNext: UpNextView()

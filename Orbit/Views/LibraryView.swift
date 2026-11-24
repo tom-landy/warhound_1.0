@@ -15,6 +15,23 @@ struct LibraryView: View {
                 EmptyLibraryView { tab = .search }
             } else {
                 ScrollView {
+                    NavigationLink {
+                        AllEpisodesView()
+                    } label: {
+                        HStack {
+                            Label("All Episodes", systemImage: "list.bullet")
+                                .font(.headline)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding()
+                        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                     LazyVGrid(columns: columns, spacing: 20) {
                         ForEach(podcasts) { podcast in
                             NavigationLink(value: podcast) {

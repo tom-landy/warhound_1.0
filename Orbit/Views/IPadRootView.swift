@@ -37,7 +37,7 @@ struct IPadRootView: View {
 }
 
 enum IPadSheet: String, Identifiable {
-    case latest, library, search, upNext, settings, downloads, stats
+    case latest, allEpisodes, library, search, upNext, settings, downloads, stats
     var id: String { rawValue }
 }
 
@@ -84,6 +84,7 @@ private struct DownloadedShowsPanel: View {
                     Spacer()
                     Menu {
                         Button { sheet = .latest } label: { Label("Latest", systemImage: "clock") }
+                        Button { sheet = .allEpisodes } label: { Label("All Episodes", systemImage: "list.bullet") }
                         Button { sheet = .library } label: { Label("Library", systemImage: "square.grid.2x2") }
                         Button { sheet = .search } label: { Label("Search", systemImage: "magnifyingglass") }
                         Button { sheet = .downloads } label: { Label("Downloads", systemImage: "arrow.down.circle") }

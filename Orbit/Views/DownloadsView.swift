@@ -51,7 +51,9 @@ struct DownloadsView: View {
             Section {
                 ForEach(downloaded) { EpisodeRow(episode: $0, showsPodcast: true) }
                     .onDelete { offsets in
-                        for i in offsets { downloads.remove(downloaded[i]) }
+                        withAnimation(.snappy) {
+                            for i in offsets { downloads.remove(downloaded[i]) }
+                        }
                     }
             } header: {
                 if !downloaded.isEmpty {
