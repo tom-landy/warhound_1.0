@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Sample library for screenshots and previews. Launch with `-demo`, optionally
 /// `-demoTab library|search|latest`, `-demoPlayer YES` to open the full player,
-/// `-demoSettings YES` to open Settings, `-demoImport YES` to open the import screen,
+/// `-demoTab settings` for Settings, `-demoImport YES` to open the import screen,
 /// `-demoUpNext YES` / `-demoChapters YES` (with `-demoPlayer YES`) for those sheets,
 /// and `-accentTheme blue` (any theme) to change colour.
 @MainActor

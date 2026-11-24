@@ -121,7 +121,7 @@ jobs:
           NAME=2-library shoot -demoTab library
           NAME=3-player shoot -demoTab latest -demoPlayer YES
           NAME=4-search shoot -demoTab search
-          NAME=5-settings shoot -demoTab latest -demoSettings YES -accentTheme teal
+          NAME=5-settings shoot -demoTab settings -accentTheme teal
           NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
           NAME=7-library-blue shoot -demoTab library -accentTheme blue
           NAME=8-import shoot -demoTab latest -demoImport YES
@@ -133,7 +133,7 @@ jobs:
           NAME=14-latest-light shoot -demoTab latest -appearance light
           NAME=15-player-light shoot -demoTab latest -demoPlayer YES -appearance light
           NAME=16-stats-light shoot -demoTab library -demoStats YES -appearance light
-          NAME=17-settings-light shoot -demoTab latest -demoSettings YES -appearance light -accentTheme teal
+          NAME=17-settings-light shoot -demoTab settings -appearance light -accentTheme teal
           xcrun simctl terminate "$UDID" com.warhound.orbit || true
           xcrun simctl launch "$UDID" com.warhound.orbit
           sleep 5

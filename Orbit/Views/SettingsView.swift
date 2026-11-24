@@ -17,9 +17,10 @@ struct SettingsView: View {
     @State private var exportURL: URL?
 
     private let columns = [GridItem(.adaptive(minimum: 58), spacing: 14)]
+    /// True when shown as a sheet (iPad); the Settings tab doesn't need a Done button.
+    var showsDone = false
 
     var body: some View {
-        NavigationStack {
             Form {
                 Section {
                     LogoView(theme: theme)
@@ -112,10 +113,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                if showsDone {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
                 }
             }
             .sheet(isPresented: $showsImport) { ImportView() }
@@ -126,7 +128,6 @@ struct SettingsView: View {
                 WidgetSync.schedule()
             }
             .onChange(of: matchIcon) { _, new in theme.applyIcon(new) }
-        }
     }
 
     private var storageUsed: String {
@@ -180,27 +181,3 @@ private struct Swatch: View {
     }
 }
 
-/// Gear button that opens Settings. Apply inside a NavigationStack.
-private struct SettingsButton: ViewModifier {
-    @State private var shows: Bool
-
-    init(demo: Bool) {
-        _shows = State(initialValue: demo && DemoData.isActive && UserDefaults.standard.bool(forKey: "demoSettings"))
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { shows = true } label: { Image(systemName: "gearshape") }
-                        .accessibilityLabel("Settings")
-                }
-            }
-            .sheet(isPresented: $shows) { SettingsView() }
-    }
-}
-
-extension View {
-    /// `demo`: this instance may auto-open for screenshots (`-demo -demoSettings YES`).
-    func settingsButton(demo: Bool = false) -> some View { modifier(SettingsButton(demo: demo)) }
-}
