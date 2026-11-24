@@ -14,12 +14,16 @@ struct IPadRootView: View {
             HStack(spacing: 12) {
                 VStack(spacing: 12) {
                     DownloadedShowsPanel(sheet: $sheet, openShow: $openShow)
-                    NowPlayingCard(large: portrait, sheet: $sheet)
                     if portrait {
-                        ChaptersPanel().frame(height: min(340, geo.size.height * 0.28))
+                        // Portrait: artwork, then chapters, then the controls at the bottom.
+                        NowPlayingCard(part: .artwork, sheet: $sheet)
+                        ChaptersPanel().frame(height: min(300, geo.size.height * 0.25))
+                        if player.episode != nil { NowPlayingCard(part: .controls, sheet: $sheet) }
+                    } else {
+                        NowPlayingCard(part: .full, sheet: $sheet)
                     }
                 }
-                .frame(width: portrait ? 300 : 300)
+                .frame(width: 300)
 
                 MiddlePanel(openShow: $openShow)
                 if !portrait {
@@ -151,20 +155,25 @@ private struct ShowRow: View {
 // MARK: - Left: player card
 
 private struct NowPlayingCard: View {
-    let large: Bool
+    enum Part { case full, artwork, controls }
+
+    let part: Part
     @Binding var sheet: IPadSheet?
+    private var large: Bool { part != .full }
     @Environment(AudioPlayer.self) private var player
     @ScaledMetric(relativeTo: .title) private var playSize: CGFloat = 56
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelLabel(text: "Now Playing")
+            if part != .controls { PanelLabel(text: "Now Playing") }
             if let episode = player.episode {
-                if large {
+                if part == .artwork {
                     ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 14)
                         .frame(maxWidth: 190)
                         .frame(maxWidth: .infinity)
                     titles(episode)
+                } else if part == .controls {
+                    EmptyView()
                 } else {
                     HStack(spacing: 12) {
                         ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 12)
@@ -172,6 +181,7 @@ private struct NowPlayingCard: View {
                         titles(episode)
                     }
                 }
+                if part != .artwork {
                 ScrubberView()
                 HStack {
                     if !large { SpeedMenuButton() }
@@ -208,7 +218,8 @@ private struct NowPlayingCard: View {
                         upNextButton
                     }
                 }
-            } else {
+                }
+            } else if part != .controls {
                 Text("Nothing Playing").font(.headline)
                 Text("Choose an episode from a show on the left.")
                     .font(.subheadline)
