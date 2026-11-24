@@ -26,8 +26,14 @@ enum FeedService {
         if !parsed.author.isEmpty { podcast.author = parsed.author }
         if !parsed.summary.isEmpty { podcast.summary = parsed.summary.plainText }
         if let art = parsed.artworkURL { podcast.artworkURL = art }
-        merge(parsed, into: podcast, context: context)
+        let added = merge(parsed, into: podcast, context: context)
         try context.save()
+        if podcast.isSubscribed && podcast.autoDownload {
+            // Cap it, so a feed that suddenly republishes its back catalogue doesn't fill the phone.
+            for episode in added.sorted(by: { $0.pubDate > $1.pubDate }).prefix(3) {
+                DownloadManager.shared.download(episode, automatic: true)
+            }
+        }
     }
 
     static func refreshAll(context: ModelContext) async {
@@ -38,6 +44,7 @@ enum FeedService {
                 group.addTask { @MainActor in try? await refresh(podcast, context: context) }
             }
         }
+        DownloadManager.shared.cleanUp()
     }
 
     private static func find(_ feedURL: URL, context: ModelContext) throws -> Podcast? {
@@ -52,7 +59,9 @@ enum FeedService {
         return try await Task.detached(priority: .userInitiated) { try FeedParser.parse(data) }.value
     }
 
-    private static func merge(_ parsed: ParsedFeed, into podcast: Podcast, context: ModelContext) {
+    @discardableResult
+    private static func merge(_ parsed: ParsedFeed, into podcast: Podcast, context: ModelContext) -> [Episode] {
+        var added: [Episode] = []
         let known = Set(podcast.episodes.map(\.guid))
         let prefix = podcast.feedURL.absoluteString + "#"
         for item in parsed.items where !known.contains(item.guid) {
@@ -62,7 +71,9 @@ enum FeedService {
                                   duration: item.duration, audioURL: audio, artworkURL: item.artworkURL)
             context.insert(episode)
             episode.podcast = podcast
+            added.append(episode)
         }
         podcast.lastRefreshed = .now
+        return added
     }
 }

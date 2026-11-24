@@ -15,6 +15,11 @@ final class Episode {
     var playbackPosition: TimeInterval = 0
     var isPlayed: Bool = false
     var lastPlayedAt: Date?
+    /// File name inside DownloadManager.directory. Stored as a name, not a path,
+    /// because the app container path changes between installs.
+    var localFileName: String?
+    var downloadedAt: Date?
+    var fileSize: Int = 0
     var podcast: Podcast?
 
     init(key: String, guid: String, title: String, summary: String, pubDate: Date,
@@ -39,4 +44,10 @@ final class Episode {
     var isInProgress: Bool { !isPlayed && playbackPosition > 5 }
 
     var remaining: TimeInterval { max(0, duration - playbackPosition) }
+
+    var isDownloaded: Bool { localFileName != nil }
+
+    var localFileURL: URL? {
+        localFileName.map { DownloadManager.directory.appendingPathComponent($0) }
+    }
 }

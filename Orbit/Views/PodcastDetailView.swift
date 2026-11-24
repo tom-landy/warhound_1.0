@@ -5,6 +5,7 @@ struct PodcastDetailView: View {
     @Bindable var podcast: Podcast
     @Environment(\.modelContext) private var context
     @Environment(\.theme) private var theme
+    @Environment(DownloadManager.self) private var downloads
     @State private var expanded = false
     @State private var hidePlayed = false
 
@@ -39,8 +40,21 @@ struct PodcastDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Toggle(isOn: $podcast.autoDownload) {
+                        Label("Download new episodes", systemImage: "arrow.down.circle")
+                    }
+                    if podcast.episodes.contains(where: \.isDownloaded) {
+                        Button(role: .destructive) {
+                            for e in podcast.episodes where e.isDownloaded { downloads.remove(e) }
+                        } label: { Label("Remove downloads", systemImage: "trash") }
+                    }
+                    Divider()
                     Button {
-                        for e in podcast.episodes { e.isPlayed = true; e.playbackPosition = 0 }
+                        for e in podcast.episodes {
+                            e.isPlayed = true
+                            e.playbackPosition = 0
+                            downloads.episodePlayed(e)
+                        }
                     } label: { Label("Mark all as played", systemImage: "checkmark.circle") }
                     Button {
                         UIPasteboard.general.url = podcast.feedURL
@@ -77,6 +91,10 @@ struct PodcastDetailView: View {
                     podcast.isSubscribed.toggle()
                     podcast.subscribedAt = podcast.isSubscribed ? .now : nil
                     try? context.save()
+                    // Start you off with the latest episode, on Wi-Fi.
+                    if podcast.isSubscribed && podcast.autoDownload, let latest = podcast.sortedEpisodes.first {
+                        downloads.download(latest, automatic: true)
+                    }
                 }
             } label: {
                 Label(podcast.isSubscribed ? "Following" : "Follow",

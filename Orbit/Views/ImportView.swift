@@ -1,0 +1,211 @@
+import SwiftData
+import SwiftUI
+import UniformTypeIdentifiers
+
+/// Follows every show in an OPML file exported from another podcast app.
+@MainActor
+@Observable
+final class Importer {
+    enum Phase { case idle, importing, done }
+
+    var phase: Phase = .idle
+    var total = 0
+    var finished = 0
+    var added = 0
+    var alreadyFollowing = 0
+    var failures: [OPMLFeed] = []
+    var current = ""
+    var error: String?
+
+    func run(file: URL, context: ModelContext) async {
+        let scoped = file.startAccessingSecurityScopedResource()
+        defer { if scoped { file.stopAccessingSecurityScopedResource() } }
+        do {
+            let feeds = try OPML.parse(Data(contentsOf: file))
+            guard !feeds.isEmpty else {
+                error = "No podcasts found in that file. Make sure it's an OPML export."
+                return
+            }
+            await run(feeds: feeds, context: context)
+        } catch {
+            self.error = "Couldn't read that file. Make sure it's an OPML export."
+        }
+    }
+
+    func run(feeds: [OPMLFeed], context: ModelContext) async {
+        phase = .importing
+        total = feeds.count
+        finished = 0; added = 0; alreadyFollowing = 0; failures = []; error = nil
+        // A few at a time: quick on good signal, doesn't swamp a weak one.
+        for batch in stride(from: 0, to: feeds.count, by: 4).map({ Array(feeds[$0..<min($0 + 4, feeds.count)]) }) {
+            await withTaskGroup(of: Void.self) { group in
+                for feed in batch {
+                    group.addTask { @MainActor in
+                        self.current = feed.title
+                        do {
+                            let podcast = try await FeedService.podcast(for: feed.url, context: context)
+                            if podcast.isSubscribed {
+                                self.alreadyFollowing += 1
+                            } else {
+                                podcast.isSubscribed = true
+                                podcast.subscribedAt = .now
+                                self.added += 1
+                            }
+                        } catch {
+                            self.failures.append(feed)
+                        }
+                        self.finished += 1
+                    }
+                }
+            }
+        }
+        try? context.save()
+        phase = .done
+    }
+}
+
+struct ImportView: View {
+    var file: URL?
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
+    @State private var importer = Importer()
+    @State private var picking = false
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                switch importer.phase {
+                case .idle: instructions
+                case .importing: progress
+                case .done: summary
+                }
+            }
+            .navigationTitle("Import shows")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(importer.phase == .done ? "Done" : "Close") { dismiss() }
+                        .disabled(importer.phase == .importing)
+                }
+            }
+            .fileImporter(isPresented: $picking, allowedContentTypes: [.opml, .xml, .text]) { result in
+                if case .success(let url) = result { start(url) }
+            }
+            .task {
+                if let file { start(file) }
+            }
+        }
+        .interactiveDismissDisabled(importer.phase == .importing)
+    }
+
+    private func start(_ url: URL) {
+        Task { await importer.run(file: url, context: context) }
+    }
+
+    private var instructions: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Bring your shows over")
+                        .font(.title3.bold())
+                    Text("Export your subscriptions from your current app as an OPML file, then choose it here. You can also open the file straight into Orbit from the share sheet or Files.")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+                Button {
+                    picking = true
+                } label: {
+                    Label("Choose OPML file", systemImage: "doc.badge.plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent)
+                .foregroundStyle(.black)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                if let error = importer.error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+            }
+            Section("Where to find the export") {
+                HowTo(app: "Overcast", steps: "Settings → Export OPML (or overcast.fm → Account → Export OPML)")
+                HowTo(app: "Pocket Casts", steps: "Profile → Settings → Import & Export → Export podcasts")
+                HowTo(app: "Castro", steps: "Settings → User Data → Export Subscriptions")
+                HowTo(app: "Spotify", steps: "No export. Search for each show here instead. Spotify-only shows have no public feed.")
+                HowTo(app: "Apple Podcasts", steps: "No built-in export. Ask for the Apple Podcasts route if this is yours.")
+            }
+        }
+    }
+
+    private var progress: some View {
+        VStack(spacing: 18) {
+            ProgressView(value: Double(importer.finished), total: Double(max(importer.total, 1)))
+                .tint(theme.color)
+            Text("\(importer.finished) of \(importer.total)")
+                .font(.title2.bold().monospacedDigit())
+            Text(importer.current)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text("Keep Orbit open while this runs. It only fetches each show's episode list; nothing downloads.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .frame(maxHeight: .infinity)
+    }
+
+    private var summary: some View {
+        List {
+            Section {
+                LabeledContent("Now following", value: "\(importer.added)")
+                if importer.alreadyFollowing > 0 {
+                    LabeledContent("Already following", value: "\(importer.alreadyFollowing)")
+                }
+                if !importer.failures.isEmpty {
+                    LabeledContent("Couldn't load", value: "\(importer.failures.count)")
+                }
+            }
+            if !importer.failures.isEmpty {
+                Section {
+                    ForEach(importer.failures, id: \.url) { feed in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(feed.title)
+                            Text(feed.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        }
+                    }
+                    Button("Try these again") {
+                        let retry = importer.failures
+                        Task { await importer.run(feeds: retry, context: context) }
+                    }
+                } header: {
+                    Text("Couldn't load")
+                } footer: {
+                    Text("Usually a weak signal or a feed that no longer exists. Try again on Wi-Fi.")
+                }
+            }
+        }
+    }
+}
+
+private struct HowTo: View {
+    let app: String
+    let steps: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(app).font(.subheadline.weight(.semibold))
+            Text(steps).font(.footnote).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct ImportRequest: Identifiable {
+    let id = UUID()
+    var file: URL?
+}

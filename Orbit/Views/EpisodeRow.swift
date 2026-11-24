@@ -4,6 +4,7 @@ struct EpisodeRow: View {
     let episode: Episode
     var showsPodcast = false
     @Environment(AudioPlayer.self) private var player
+    @Environment(DownloadManager.self) private var downloads
     @Environment(\.theme) private var theme
     @State private var showsNotes = false
 
@@ -28,8 +29,12 @@ struct EpisodeRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                PlayCapsule(episode: episode)
-                    .padding(.top, 4)
+                HStack {
+                    PlayCapsule(episode: episode)
+                    Spacer()
+                    DownloadButton(episode: episode)
+                }
+                .padding(.top, 2)
             }
         }
         .padding(.vertical, 6)
@@ -39,12 +44,27 @@ struct EpisodeRow: View {
         .swipeActions(edge: .leading) {
             Button {
                 episode.isPlayed.toggle()
-                if episode.isPlayed { episode.playbackPosition = 0 }
+                if episode.isPlayed {
+                    episode.playbackPosition = 0
+                    downloads.episodePlayed(episode)
+                }
             } label: {
                 Label(episode.isPlayed ? "Unplayed" : "Played",
                       systemImage: episode.isPlayed ? "circle" : "checkmark.circle")
             }
             .tint(theme.color)
+        }
+        .swipeActions(edge: .trailing) {
+            if episode.isDownloaded {
+                Button(role: .destructive) { downloads.remove(episode) } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+            } else if downloads.state(episode) == .none || downloads.state(episode) == .failed {
+                Button { downloads.download(episode) } label: {
+                    Label("Download", systemImage: "arrow.down")
+                }
+                .tint(theme.color)
+            }
         }
     }
 

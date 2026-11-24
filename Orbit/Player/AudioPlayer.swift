@@ -75,7 +75,8 @@ final class AudioPlayer {
         artwork = nil
         loadArtwork(for: episode)
 
-        let item = AVPlayerItem(url: episode.audioURL)
+        let local = episode.localFileURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let item = AVPlayerItem(url: local ?? episode.audioURL)
         observeEnd(of: item)
         player.replaceCurrentItem(with: item)
         if episode.playbackPosition > 0 {
@@ -149,6 +150,7 @@ final class AudioPlayer {
                 episode.playbackPosition = 0
                 try? episode.modelContext?.save()
                 self.currentTime = 0
+                DownloadManager.shared.episodePlayed(episode)
             }
         }
     }

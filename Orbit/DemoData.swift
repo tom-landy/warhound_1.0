@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Sample library for screenshots and previews. Launch with `-demo`, optionally
 /// `-demoTab library|search|latest`, `-demoPlayer YES` to open the full player,
-/// `-demoSettings YES` to open Settings, and `-accentTheme blue` (any theme) to change colour.
+/// `-demoSettings YES` to open Settings, `-demoImport YES` to open the import screen,
+/// and `-accentTheme blue` (any theme) to change colour.
 @MainActor
 enum DemoData {
     static var isActive: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }
@@ -31,6 +32,11 @@ enum DemoData {
                                 audioURL: URL(string: "https://example.com/audio/\(i)-\(j).mp3")!, artworkURL: nil)
                 if i == 1 && j == 0 { e.playbackPosition = 1260; e.lastPlayedAt = .now }
                 if i == 2 && j == 1 { e.isPlayed = true }
+                if (i == 0 && j < 2) || (i == 1 && j == 0) || i == 3 {
+                    e.localFileName = "demo-\(i)-\(j).mp3"
+                    e.downloadedAt = .now
+                    e.fileSize = 38_000_000 + 9_000_000 * j
+                }
                 context.insert(e)
                 e.podcast = podcast
                 day += 1
@@ -42,6 +48,8 @@ enum DemoData {
     /// Loads a paused episode into the player and returns the tab to show, if one was asked for.
     static func apply(player: AudioPlayer, context: ModelContext) -> AppTab? {
         let defaults = UserDefaults.standard
+        DownloadManager.shared.showDemoProgress("demo-0-2", 0.62)
+        DownloadManager.shared.showDemoProgress("demo-2-0", -1)
         var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == "demo-1-0" })
         descriptor.fetchLimit = 1
         if let episode = try? context.fetch(descriptor).first {

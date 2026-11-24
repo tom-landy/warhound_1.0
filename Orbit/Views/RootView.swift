@@ -9,6 +9,7 @@ struct RootView: View {
     @Environment(AudioPlayer.self) private var player
     @Environment(\.modelContext) private var context
     @State private var tab: AppTab = .latest
+    @State private var importRequest: ImportRequest?
 
     var body: some View {
         @Bindable var player = player
@@ -29,9 +30,14 @@ struct RootView: View {
         .sheet(isPresented: $player.showsFullPlayer) {
             NowPlayingView()
         }
+        .sheet(item: $importRequest) { ImportView(file: $0.file) }
+        .onOpenURL { url in
+            if url.isFileURL { importRequest = ImportRequest(file: url) }
+        }
         .task {
             if DemoData.isActive {
                 if let t = DemoData.apply(player: player, context: context) { tab = t }
+                if UserDefaults.standard.bool(forKey: "demoImport") { importRequest = ImportRequest() }
             } else {
                 await FeedService.refreshAll(context: context)
             }

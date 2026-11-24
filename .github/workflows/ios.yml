@@ -67,6 +67,7 @@ jobs:
           NAME=5-settings shoot -demoTab latest -demoSettings YES -accentTheme teal
           NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
           NAME=7-library-blue shoot -demoTab library -accentTheme blue
+          NAME=8-import shoot -demoTab latest -demoImport YES
           xcrun simctl terminate "$UDID" com.tomlandy.Orbit || true
           xcrun simctl launch "$UDID" com.tomlandy.Orbit
           sleep 5

@@ -37,6 +37,16 @@ struct LibraryView: View {
         }
         .navigationTitle("Library")
         .settingsButton()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    DownloadsView()
+                } label: {
+                    Image(systemName: "arrow.down.circle")
+                }
+                .accessibilityLabel("Downloads")
+            }
+        }
         .navigationDestination(for: Podcast.self) { PodcastDetailView(podcast: $0) }
     }
 }

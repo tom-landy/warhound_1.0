@@ -1,9 +1,16 @@
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     @AppStorage(AccentTheme.matchIconKey) private var matchIcon = false
+    @AppStorage(DownloadManager.wifiOnlyKey) private var wifiOnly = true
+    @AppStorage(DownloadManager.removePlayedKey) private var removePlayed = true
     @Environment(\.dismiss) private var dismiss
+    @Environment(DownloadManager.self) private var downloads
+    @Query(filter: #Predicate<Podcast> { $0.isSubscribed }, sort: \Podcast.title) private var subscriptions: [Podcast]
+    @State private var showsImport = false
+    @State private var exportURL: URL?
 
     private let columns = [GridItem(.adaptive(minimum: 58), spacing: 14)]
 
@@ -37,6 +44,33 @@ struct SettingsView: View {
                     Text("Changes the icon on your Home Screen too. iOS shows a short confirmation each time it changes.")
                 }
 
+                Section {
+                    Toggle("New episodes on Wi-Fi only", isOn: $wifiOnly)
+                    Toggle("Remove after playing", isOn: $removePlayed)
+                    NavigationLink {
+                        DownloadsView()
+                    } label: {
+                        LabeledContent("Manage downloads", value: storageUsed)
+                    }
+                } header: {
+                    Text("Downloads")
+                } footer: {
+                    Text("Episodes you download by hand always go, on any connection. Turn off a show's automatic downloads from the ⋯ menu on its page.")
+                }
+
+                Section("Your shows") {
+                    Button {
+                        showsImport = true
+                    } label: {
+                        Label("Import from another app", systemImage: "square.and.arrow.down")
+                    }
+                    if let exportURL, !subscriptions.isEmpty {
+                        ShareLink(item: exportURL) {
+                            Label("Export \(subscriptions.count) shows (OPML)", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
+
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                 }
@@ -48,9 +82,16 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showsImport) { ImportView() }
+            .task(id: subscriptions.count) { exportURL = OPML.exportFile(subscriptions) }
             .onChange(of: theme) { _, new in new.applyIcon(matchIcon) }
             .onChange(of: matchIcon) { _, new in theme.applyIcon(new) }
         }
+    }
+
+    private var storageUsed: String {
+        let bytes = downloads.downloadedEpisodes().reduce(0) { $0 + $1.fileSize }
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
     private static var version: String {

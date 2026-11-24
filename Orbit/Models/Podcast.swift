@@ -11,6 +11,8 @@ final class Podcast {
     var isSubscribed: Bool
     var subscribedAt: Date?
     var lastRefreshed: Date?
+    /// Download new episodes as they appear.
+    var autoDownload: Bool = true
 
     @Relationship(deleteRule: .cascade, inverse: \Episode.podcast)
     var episodes: [Episode] = []

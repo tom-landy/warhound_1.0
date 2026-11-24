@@ -5,9 +5,14 @@ struct LatestView: View {
     @Binding var tab: AppTab
     @Environment(\.modelContext) private var context
     @Query(sort: \Episode.pubDate, order: .reverse) private var episodes: [Episode]
+    @AppStorage("latestDownloadedOnly") private var downloadedOnly = false
 
     private var subscribed: [Episode] {
-        episodes.filter { $0.podcast?.isSubscribed == true }
+        episodes.filter { $0.podcast?.isSubscribed == true && (!downloadedOnly || $0.isDownloaded) }
+    }
+
+    private var followsAnything: Bool {
+        episodes.contains { $0.podcast?.isSubscribed == true }
     }
 
     private var inProgress: [Episode] {
@@ -24,8 +29,16 @@ struct LatestView: View {
 
     var body: some View {
         Group {
-            if subscribed.isEmpty {
+            if !followsAnything {
                 EmptyLibraryView { tab = .search }
+            } else if subscribed.isEmpty {
+                ContentUnavailableView {
+                    Label("No downloads yet", systemImage: "arrow.down.circle")
+                } description: {
+                    Text("Downloaded episodes show here, ready for when the signal drops.")
+                } actions: {
+                    Button("Show all episodes") { downloadedOnly = false }
+                }
             } else {
                 List {
                     if !inProgress.isEmpty {
@@ -41,14 +54,27 @@ struct LatestView: View {
                 .refreshable { await FeedService.refreshAll(context: context) }
             }
         }
-        .navigationTitle("Latest")
+        .navigationTitle(downloadedOnly ? "Downloaded" : "Latest")
         .settingsButton(demo: true)
+        .toolbar {
+            if followsAnything {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation { downloadedOnly.toggle() }
+                    } label: {
+                        Image(systemName: downloadedOnly ? "arrow.down.circle.fill" : "arrow.down.circle")
+                    }
+                    .accessibilityLabel(downloadedOnly ? "Show all episodes" : "Show downloaded only")
+                }
+            }
+        }
     }
 }
 
 struct EmptyLibraryView: View {
     let findPodcasts: () -> Void
     @Environment(\.theme) private var theme
+    @State private var showsImport = false
 
     var body: some View {
         ContentUnavailableView {
@@ -63,6 +89,8 @@ struct EmptyLibraryView: View {
             Button("Find podcasts", action: findPodcasts)
                 .buttonStyle(.borderedProminent)
                 .foregroundStyle(.black)
+            Button("Import from another app") { showsImport = true }
         }
+        .sheet(isPresented: $showsImport) { ImportView() }
     }
 }
