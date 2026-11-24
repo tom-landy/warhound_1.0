@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23262D"/>
+      <stop offset="1" stop-color="#0C0D10"/>
+    </linearGradient>
+    <linearGradient id="fg" gradientUnits="userSpaceOnUse" x1="0" y1="216" x2="0" y2="808">
+      <stop offset="0" stop-color="{{TOP}}"/>
+      <stop offset="1" stop-color="{{BOTTOM}}"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="{{BOTTOM}}" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="{{BOTTOM}}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- Ring: r=250 centred, gap of 68deg around the satellite at -45deg (upper right) -->
+  <path d="M 559.7 266.6 A 250 250 0 1 0 757.4 464.3" fill="none" stroke="url(#fg)" stroke-width="92" stroke-linecap="round"/>
+  <!-- Satellite -->
+  <circle cx="689" cy="335" r="58" fill="url(#fg)"/>
+  <!-- Core -->
+  <circle cx="512" cy="512" r="74" fill="url(#fg)" opacity="0.9"/>
+</svg>
