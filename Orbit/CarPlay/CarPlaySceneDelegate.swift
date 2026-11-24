@@ -46,7 +46,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         // With no signal, open on what can actually play.
         let tabs = CPTabBarTemplate(templates: [latest, downloaded, library])
         interfaceController.setRootTemplate(tabs, animated: false, completion: nil)
-        if !hasSignal(), !downloadedEpisodes().isEmpty { tabs.selectTemplate(downloaded) }
+        if !hasSignal(), !downloadedEpisodes().isEmpty { tabs.select(downloaded) }
 
         configureNowPlaying()
         reload()
