@@ -32,9 +32,8 @@ final class PhoneLink: NSObject {
         if let key { message[WatchMessage.episodeKey] = key }
         lastError = nil
         // Wakes Orbit on the phone in the background if it isn't running.
-        WCSession.default.sendMessage(message, replyHandler: nil) { error in
-            let text = error.localizedDescription
-            Task { @MainActor in self.lastError = "Couldn't reach your iPhone. \(text)" }
+        WCSession.default.sendMessage(message, replyHandler: nil) { _ in
+            Task { @MainActor in self.lastError = "Can't connect to iPhone." }
         }
     }
 

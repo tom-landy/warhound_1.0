@@ -33,7 +33,7 @@ struct LatestView: View {
                 EmptyLibraryView { tab = .search }
             } else if subscribed.isEmpty {
                 ContentUnavailableView {
-                    Label("No Downloads Yet", systemImage: "arrow.down.circle")
+                    Label("No Downloads", systemImage: "arrow.down.circle")
                 } description: {
                     Text("Downloaded Episodes")
                 } actions: {
@@ -82,7 +82,7 @@ struct EmptyLibraryView: View {
                 .frame(width: 96, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .padding(.bottom, 8)
-            Text("Nothing to Play Yet")
+            Text("No Shows")
         } description: {
             Text("All your shows appear here.")
         } actions: {

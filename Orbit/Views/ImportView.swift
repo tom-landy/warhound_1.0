@@ -23,12 +23,12 @@ final class Importer {
         do {
             let feeds = try OPML.parse(Data(contentsOf: file))
             guard !feeds.isEmpty else {
-                error = "No podcasts found in that file. Make sure it's an OPML export."
+                error = "No shows found. Choose an OPML file."
                 return
             }
             await run(feeds: feeds, context: context)
         } catch {
-            self.error = "Couldn't read that file. Make sure it's an OPML export."
+            self.error = "This file can't be read. Choose an OPML file."
         }
     }
 
@@ -108,9 +108,9 @@ struct ImportView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Bring Your Shows Over")
+                    Text("Import from Another App")
                         .font(.title3.bold())
-                    Text("Export the shows you follow from your current app as an OPML file, then choose it here. You can also open the file straight into Orbit from the share sheet or Files.")
+                    Text("Export an OPML file from your current podcast app, then choose it here. You can also open an OPML file in Orbit from Files or the share sheet.")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
@@ -135,8 +135,8 @@ struct ImportView: View {
                 HowTo(app: "Overcast", steps: "Settings → Export OPML (or overcast.fm → Account → Export OPML)")
                 HowTo(app: "Pocket Casts", steps: "Profile → Settings → Import & Export → Export podcasts")
                 HowTo(app: "Castro", steps: "Settings → User Data → Export Subscriptions")
-                HowTo(app: "Spotify", steps: "No export. Search for each show here instead. Spotify-only shows have no public feed.")
-                HowTo(app: "Apple Podcasts", steps: "No built-in export. Ask for the Apple Podcasts route if this is yours.")
+                HowTo(app: "Spotify", steps: "Not supported. Add shows using Search.")
+                HowTo(app: "Apple Podcasts", steps: "Not supported. Add shows using Search.")
             }
         }
     }
@@ -151,7 +151,7 @@ struct ImportView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Text("Keep Orbit open while this runs. Afterwards the latest episode of each show downloads on Wi-Fi.")
+            Text("Keep Orbit open until the import finishes. The latest episode of each show will download on Wi-Fi.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -179,14 +179,14 @@ struct ImportView: View {
                             Text(feed.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
-                    Button("Try These Again") {
+                    Button("Retry") {
                         let retry = importer.failures
                         Task { await importer.run(feeds: retry, context: context) }
                     }
                 } header: {
                     Text("Couldn't Load")
                 } footer: {
-                    Text("Usually a weak signal or a feed that no longer exists. Try again on Wi-Fi.")
+                    Text("Check your connection and try again. Some feeds may no longer exist.")
                 }
             }
         }

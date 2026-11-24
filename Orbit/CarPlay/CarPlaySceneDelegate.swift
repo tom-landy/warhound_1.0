@@ -34,11 +34,11 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         latest.tabTitle = "Latest"
         latest.tabImage = UIImage(systemName: "clock")
         latest.emptyViewTitleVariants = ["Nothing New"]
-        latest.emptyViewSubtitleVariants = ["Follow shows on your iPhone"]
+        latest.emptyViewSubtitleVariants = ["Follow shows on iPhone."]
         downloaded.tabTitle = "Downloaded"
         downloaded.tabImage = UIImage(systemName: "arrow.down.circle")
         downloaded.emptyViewTitleVariants = ["No Downloads"]
-        downloaded.emptyViewSubtitleVariants = ["Download episodes on your iPhone to play them without signal"]
+        downloaded.emptyViewSubtitleVariants = ["Download episodes on iPhone to play offline."]
         library.tabTitle = "Library"
         library.tabImage = UIImage(systemName: "square.grid.2x2")
         library.emptyViewTitleVariants = ["No Shows Yet"]

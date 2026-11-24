@@ -20,7 +20,7 @@ struct ParsedEpisode: Sendable {
 
 enum FeedError: LocalizedError {
     case notAFeed
-    var errorDescription: String? { "That doesn't look like a podcast feed." }
+    var errorDescription: String? { "This URL isn't a podcast feed." }
 }
 
 /// Minimal RSS 2.0 + iTunes namespace parser. Synchronous, call it off the main actor.

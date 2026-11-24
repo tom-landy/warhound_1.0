@@ -67,7 +67,7 @@ struct DownloadButton: View {
     private func label(_ state: DownloadManager.State) -> String {
         switch state {
         case .none: "Download"
-        case .failed: "Download failed, tap to retry"
+        case .failed: "Download failed. Retry."
         case .downloaded: "Downloaded"
         case .downloading(let f): f.map { "Downloading, \(Int($0 * 100)) percent. Tap to stop" } ?? "Waiting to download. Tap to stop"
         }

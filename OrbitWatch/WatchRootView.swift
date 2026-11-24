@@ -11,11 +11,11 @@ struct WatchRootView: View {
             // The system Now Playing controls: play/pause, skip, volume on the Digital Crown.
             NowPlayingView()
                 .tag(0)
-            EpisodeList(title: "Latest", episodes: link.state?.latest ?? [], empty: "Follow shows in Orbit on your iPhone.") {
+            EpisodeList(title: "Latest", episodes: link.state?.latest ?? [], empty: "Follow shows in Orbit on iPhone.") {
                 page = 0
             }
             .tag(1)
-            EpisodeList(title: "Downloaded", episodes: link.state?.downloaded ?? [], empty: "Download episodes on your iPhone to play them without signal.") {
+            EpisodeList(title: "Downloaded", episodes: link.state?.downloaded ?? [], empty: "Download episodes on iPhone to play offline.") {
                 page = 0
             }
             .tag(2)
@@ -40,7 +40,7 @@ private struct EpisodeList: View {
                         .foregroundStyle(.orange)
                 }
                 if link.state == nil {
-                    Text("Open Orbit on your iPhone once to connect.")
+                    Text("Open Orbit on iPhone to connect.")
                         .foregroundStyle(.secondary)
                 } else if episodes.isEmpty {
                     Text(empty)

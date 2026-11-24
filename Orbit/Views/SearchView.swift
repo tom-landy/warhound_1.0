@@ -33,7 +33,7 @@ struct SearchView: View {
         .listStyle(.plain)
         .overlay { placeholder }
         .navigationTitle("Search")
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Shows, people, topics")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Shows")
         .autocorrectionDisabled()
         .task(id: query) { await search() }
         .navigationDestination(for: SearchResult.self) { result in
@@ -58,7 +58,7 @@ struct SearchView: View {
                 feedText = ""
             }
         } message: {
-            Text("Paste an RSS link for shows that aren't in the directory, like private or paid feeds.")
+            Text("Enter the RSS feed URL of a show, such as a private or members-only feed.")
         }
     }
 
@@ -68,8 +68,8 @@ struct SearchView: View {
         } else if let error {
             ContentUnavailableView("Search Failed", systemImage: "wifi.exclamationmark", description: Text(error))
         } else if query.isEmpty {
-            ContentUnavailableView("Find a Show", systemImage: "magnifyingglass",
-                                   description: Text("Search Apple's podcast directory, or add a feed by URL with the link button."))
+            ContentUnavailableView("Search Podcasts", systemImage: "magnifyingglass",
+                                   description: Text("Search for shows, or add a show by its RSS feed URL."))
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
         }

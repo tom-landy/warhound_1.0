@@ -190,7 +190,7 @@ struct EpisodeNotesView: View {
                     Text([episode.pubDate.episodeDate, episode.duration.spoken].filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(episode.summary.isEmpty ? "No notes for this episode." : episode.summary)
+                    Text(episode.summary.isEmpty ? "No episode notes." : episode.summary)
                         .font(.body)
                         .textSelection(.enabled)
                 }

@@ -43,7 +43,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Colour")
                 } footer: {
-                    Text("Changes the icon on your Home Screen too. iOS shows a short confirmation each time it changes.")
+                    Text("Also changes the app icon on the Home Screen.")
                 }
 
                 Section {
@@ -60,7 +60,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Downloads")
                 } footer: {
-                    Text("Wi-Fi only applies to automatic downloads. Episodes you tap to download use mobile data if there's no Wi-Fi. To stop automatic downloads for one show, use the ⋯ menu on its page.")
+                    Text("Wi-Fi Only applies to automatic downloads. Episodes you download yourself use any connection. Turn off automatic downloads for a show in its ⋯ menu.")
                 }
 
                 Section("Your Shows") {
