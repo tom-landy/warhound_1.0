@@ -78,6 +78,7 @@ struct SettingsView: View {
 
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
+                    LabeledContent("Built", value: Self.buildDate)
                 }
             }
             .navigationTitle("Settings")
@@ -98,6 +99,14 @@ struct SettingsView: View {
     private var storageUsed: String {
         let bytes = downloads.downloadedEpisodes().reduce(0) { $0 + $1.fileSize }
         return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    }
+
+    /// When this copy was built in Xcode, read from the app binary's date.
+    private static var buildDate: String {
+        guard let url = Bundle.main.executableURL,
+              let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        else { return "Unknown" }
+        return date.formatted(date: .abbreviated, time: .shortened)
     }
 
     private static var version: String {
