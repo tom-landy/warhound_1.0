@@ -44,23 +44,8 @@ struct DownloadButton: View {
             Image(systemName: "arrow.down.circle.fill")
                 .font(.title3)
                 .foregroundStyle(theme.color)
-        case .downloading(let fraction):
-            ZStack {
-                Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 2.5)
-                if let fraction {
-                    Circle()
-                        .trim(from: 0, to: max(0.03, fraction))
-                        .stroke(theme.color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.2), value: fraction)
-                } else {
-                    WaitingArc(color: theme.color)
-                }
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(theme.color)
-                    .frame(width: 8, height: 8)
-            }
-            .frame(width: 22, height: 22)
+        case .downloading:
+            ProgressRing(progress: downloads.progress(for: episode.key), color: theme.color)
         }
     }
 
@@ -69,8 +54,35 @@ struct DownloadButton: View {
         case .none: "Download"
         case .failed: "Download failed. Retry."
         case .downloaded: "Downloaded"
-        case .downloading(let f): f.map { "Downloading, \(Int($0 * 100)) percent. Tap to stop" } ?? "Waiting to download. Tap to stop"
+        case .downloading: "Downloading. Tap to stop"
         }
+    }
+}
+
+/// Progress ring for one download. Only this view redraws as the download moves.
+struct ProgressRing: View {
+    let progress: DownloadProgress?
+    let color: Color
+
+    var body: some View {
+        let fraction = progress?.fraction
+        ZStack {
+            Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 2.5)
+            if let fraction {
+                Circle()
+                    .trim(from: 0, to: max(0.03, fraction))
+                    .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 0.2), value: fraction)
+            } else {
+                WaitingArc(color: color)
+            }
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 8, height: 8)
+        }
+        .frame(width: 22, height: 22)
+        .accessibilityValue(fraction.map { "\(Int($0 * 100)) percent" } ?? "Waiting")
     }
 }
 

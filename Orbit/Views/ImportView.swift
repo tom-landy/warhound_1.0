@@ -72,6 +72,7 @@ struct ImportView: View {
     @Environment(\.theme) private var theme
     @State private var importer = Importer()
     @State private var picking = false
+    @State private var markedPlayed = false
 
     var body: some View {
         NavigationStack {
@@ -162,6 +163,18 @@ struct ImportView: View {
 
     private var summary: some View {
         List {
+            Section {
+                Button {
+                    FeedService.markAllPlayed(keepLatest: true, context: context)
+                    markedPlayed = true
+                } label: {
+                    Label(markedPlayed ? "Older Episodes Marked as Played" : "Mark Older Episodes as Played",
+                          systemImage: markedPlayed ? "checkmark.circle.fill" : "checkmark.circle")
+                }
+                .disabled(markedPlayed)
+            } footer: {
+                Text("Keeps each show's latest episode unplayed, so only new episodes show as new.")
+            }
             Section {
                 LabeledContent("Now Following", value: "\(importer.added)")
                 if importer.alreadyFollowing > 0 {

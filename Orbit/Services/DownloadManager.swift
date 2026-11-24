@@ -30,13 +30,16 @@ final class DownloadManager: NSObject {
 
     enum State: Equatable {
         case none
-        case downloading(Double?)
+        case downloading
         case downloaded
         case failed
     }
 
-    /// Episode key -> fraction done, or -1 when waiting or the size is unknown.
-    private(set) var active: [String: Double] = [:]
+    /// Episodes downloading or queued. Changes only when a download starts or stops, so lists
+    /// don't redraw every row on each progress tick.
+    private(set) var active: Set<String> = []
+    /// Per-episode progress, observed only by that episode's progress ring.
+    @ObservationIgnored private var progressByKey: [String: DownloadProgress] = [:]
     private(set) var failed: Set<String> = []
     /// Automatic downloads held back until Wi-Fi.
     private(set) var wifiOnly: Set<String> = []
@@ -59,7 +62,8 @@ final class DownloadManager: NSObject {
             for task in await session.allTasks {
                 guard let download = task as? URLSessionDownloadTask, let key = task.taskDescription else { continue }
                 tasks[key] = download
-                active[key] = -1
+                active.insert(key)
+                if progressByKey[key] == nil { progressByKey[key] = DownloadProgress() }
             }
         }
     }
@@ -67,7 +71,7 @@ final class DownloadManager: NSObject {
     // MARK: - Queries
 
     func state(_ episode: Episode) -> State {
-        if let p = active[episode.key] { return .downloading(p >= 0 ? p : nil) }
+        if active.contains(episode.key) { return .downloading }
         if episode.isDownloaded { return .downloaded }
         if failed.contains(episode.key) { return .failed }
         return .none
@@ -77,7 +81,7 @@ final class DownloadManager: NSObject {
 
     /// `automatic` downloads respect the Wi-Fi only setting. Ones you tap always go.
     func download(_ episode: Episode, automatic: Bool = false) {
-        guard session != nil, !episode.isDownloaded, active[episode.key] == nil else { return }
+        guard session != nil, !episode.isDownloaded, !active.contains(episode.key) else { return }
         var request = URLRequest(url: episode.audioURL)
         request.setValue("Orbit/1.0", forHTTPHeaderField: "User-Agent")
         if automatic && UserDefaults.standard.bool(forKey: Self.wifiOnlyKey) {
@@ -151,14 +155,22 @@ final class DownloadManager: NSObject {
     }
 
     /// Screenshot support only.
-    func showDemoProgress(_ key: String, _ fraction: Double) { active[key] = fraction }
+    func showDemoProgress(_ key: String, _ fraction: Double) {
+        active.insert(key)
+        let progress = DownloadProgress()
+        progress.fraction = fraction >= 0 ? fraction : nil
+        progressByKey[key] = progress
+    }
+
+    func progress(for key: String) -> DownloadProgress? { progressByKey[key] }
 
     // MARK: - Internals
 
     private func start(_ task: URLSessionDownloadTask, key: String) {
         task.taskDescription = key
         tasks[key] = task
-        active[key] = -1
+        active.insert(key)
+        if progressByKey[key] == nil { progressByKey[key] = DownloadProgress() }
         failed.remove(key)
         task.resume()
     }
@@ -166,15 +178,17 @@ final class DownloadManager: NSObject {
     private func clear(_ key: String) {
         wifiOnly.remove(key)
         tasks[key] = nil
-        active[key] = nil
+        active.remove(key)
+        progressByKey[key] = nil
         retries[key] = nil
     }
 
     fileprivate func progress(_ key: String, _ fraction: Double) {
-        guard active[key] != nil else { return }
-        // Only publish visible changes, so lists don't redraw on every packet.
-        if fraction < 0 || abs((active[key] ?? 0) - fraction) >= 0.01 || fraction >= 1 {
-            active[key] = fraction
+        guard let progress = progressByKey[key] else { return }
+        let new: Double? = fraction >= 0 ? fraction : nil
+        // Only publish visible changes (whole percents).
+        if new == nil || progress.fraction == nil || abs((progress.fraction ?? 0) - (new ?? 0)) >= 0.01 || (new ?? 0) >= 1 {
+            progress.fraction = new
         }
     }
 
@@ -196,7 +210,7 @@ final class DownloadManager: NSObject {
     fileprivate func completed(_ key: String, task: URLSessionTask, error: Error?, resumeData: Data?) {
         guard tasks[key] === task || tasks[key] == nil else { return }
         guard let error else {
-            if active[key] != nil { clear(key); failed.insert(key) }
+            if active.contains(key) { clear(key); failed.insert(key) }
             return
         }
         if (error as? URLError)?.code == .cancelled && resumeData == nil {
@@ -275,4 +289,11 @@ extension DownloadManager: URLSessionDownloadDelegate {
             Self.backgroundCompletion = nil
         }
     }
+}
+
+/// One download's progress: nil while waiting or when the size is unknown.
+@MainActor
+@Observable
+final class DownloadProgress {
+    var fraction: Double?
 }

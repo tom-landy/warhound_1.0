@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Environment(DownloadManager.self) private var downloads
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }, sort: \Podcast.title) private var subscriptions: [Podcast]
     @State private var showsImport = false
+    @State private var confirmMarkAll = false
     @State private var exportURL: URL?
 
     private let columns = [GridItem(.adaptive(minimum: 58), spacing: 14)]
@@ -85,6 +86,17 @@ struct SettingsView: View {
                         showsImport = true
                     } label: {
                         Label("Import from Another App", systemImage: "square.and.arrow.down")
+                    }
+                    Button {
+                        confirmMarkAll = true
+                    } label: {
+                        Label("Mark All as Played", systemImage: "checkmark.circle")
+                    }
+                    .confirmationDialog("Mark episodes as played?", isPresented: $confirmMarkAll, titleVisibility: .visible) {
+                        Button("Keep Each Show's Latest") { FeedService.markAllPlayed(keepLatest: true, context: context) }
+                        Button("Mark Everything", role: .destructive) { FeedService.markAllPlayed(keepLatest: false, context: context) }
+                    } message: {
+                        Text("Clears the back catalogue of every show you follow. Played downloads are removed if Remove After Playing is on.")
                     }
                     if let exportURL, !subscriptions.isEmpty {
                         ShareLink(item: exportURL) {

@@ -322,7 +322,9 @@ final class AudioPlayer {
         }
         guard seconds.isFinite, !isScrubbing else { return }
         currentTime = seconds
-        if Date.now.timeIntervalSince(lastSaved) > 5 { saveProgress() }
+        // Each save refreshes every list on screen, so not too often. Pause and episode
+        // changes save straight away.
+        if Date.now.timeIntervalSince(lastSaved) > 20 { saveProgress() }
     }
 
     private func saveProgress() {

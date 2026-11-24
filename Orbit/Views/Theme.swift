@@ -43,16 +43,15 @@ struct ArtworkView: View {
 
     var body: some View {
         // A fixed square; the image is fitted inside it so wide or tall artwork is never
-        // cropped or stretched, with a blurred copy filling any space around it.
+        // cropped or stretched. (No blur behind it: blurs make scrolling lists stutter.)
         Color.clear
             .aspectRatio(1, contentMode: .fit)
             .overlay {
                 AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.2))) { phase in
                     if let image = phase.image {
-                        ZStack {
-                            image.resizable().scaledToFill().blur(radius: 14).opacity(0.7)
-                            image.resizable().scaledToFit()
-                        }
+                        image.resizable().scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(.tertiarySystemFill))
                     } else {
                         ZStack {
                             LinearGradient(colors: [Color(hue: hue, saturation: 0.45, brightness: 0.45),

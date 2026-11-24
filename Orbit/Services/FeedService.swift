@@ -27,6 +27,23 @@ enum FeedService {
         try? podcast.modelContext?.save()
     }
 
+    /// Marks every episode of followed shows as played, optionally leaving each show's newest one.
+    /// Handy after importing, so years of back catalogue don't show as new.
+    static func markAllPlayed(keepLatest: Bool, context: ModelContext) {
+        let descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
+        for podcast in (try? context.fetch(descriptor)) ?? [] {
+            for (index, episode) in podcast.sortedEpisodes.enumerated() {
+                if keepLatest && index == 0 { continue }
+                if AudioPlayer.shared.isCurrent(episode) { continue }
+                episode.isPlayed = true
+                episode.playbackPosition = 0
+                episode.queueOrder = nil
+                DownloadManager.shared.episodePlayed(episode)
+            }
+        }
+        try? context.save()
+    }
+
     /// Downloads each followed show's newest unplayed episodes, up to the per-show setting.
     /// Runs after every refresh, so it also catches shows that were just imported.
     static func keepLatestDownloaded(context: ModelContext) {
