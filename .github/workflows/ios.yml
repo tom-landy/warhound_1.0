@@ -87,8 +87,8 @@ jobs:
           mkdir -p docs/screenshots
           cd docs/screenshots
           shoot() {
-            xcrun simctl terminate "$UDID" com.tomlandy.Orbit 2>/dev/null || true
-            xcrun simctl launch "$UDID" com.tomlandy.Orbit -demo "$@"
+            xcrun simctl terminate "$UDID" com.warhound.orbit 2>/dev/null || true
+            xcrun simctl launch "$UDID" com.warhound.orbit -demo "$@"
             sleep 6
             xcrun simctl io "$UDID" screenshot "$NAME.png"
           }
@@ -109,8 +109,8 @@ jobs:
           NAME=15-player-light shoot -demoTab latest -demoPlayer YES -appearance light
           NAME=16-stats-light shoot -demoTab library -demoStats YES -appearance light
           NAME=17-settings-light shoot -demoTab latest -demoSettings YES -appearance light -accentTheme teal
-          xcrun simctl terminate "$UDID" com.tomlandy.Orbit || true
-          xcrun simctl launch "$UDID" com.tomlandy.Orbit
+          xcrun simctl terminate "$UDID" com.warhound.orbit || true
+          xcrun simctl launch "$UDID" com.warhound.orbit
           sleep 5
           xcrun simctl io "$UDID" screenshot 0-empty.png
           sips --resampleWidth 590 *.png >/dev/null
@@ -124,11 +124,11 @@ jobs:
             xcrun simctl bootstatus "$IPAD" -b
             xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryLevel 100
             xcrun simctl install "$IPAD" ../../build/Debug-iphonesimulator/Orbit.app
-            xcrun simctl launch "$IPAD" com.tomlandy.Orbit -demo -demoTab library
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoTab library
             sleep 8
             xcrun simctl io "$IPAD" screenshot ipad-1-library.png
-            xcrun simctl terminate "$IPAD" com.tomlandy.Orbit || true
-            xcrun simctl launch "$IPAD" com.tomlandy.Orbit -demo -demoTab latest -demoPlayer YES -appearance light
+            xcrun simctl terminate "$IPAD" com.warhound.orbit || true
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoTab latest -demoPlayer YES -appearance light
             sleep 8
             xcrun simctl io "$IPAD" screenshot ipad-2-player-light.png
             xcrun simctl shutdown "$IPAD" || true
@@ -143,11 +143,11 @@ jobs:
           if [ -n "$WATCH" ]; then
             xcrun simctl bootstatus "$WATCH" -b
             xcrun simctl install "$WATCH" "../../build/Debug-watchsimulator/Orbit Watch.app"
-            xcrun simctl launch "$WATCH" com.tomlandy.Orbit.watchkitapp -demo -demoPage 1
+            xcrun simctl launch "$WATCH" com.warhound.orbit.watchkitapp -demo -demoPage 1
             sleep 8
             xcrun simctl io "$WATCH" screenshot watch-1-latest.png
-            xcrun simctl terminate "$WATCH" com.tomlandy.Orbit.watchkitapp || true
-            xcrun simctl launch "$WATCH" com.tomlandy.Orbit.watchkitapp -demo -demoPage 2
+            xcrun simctl terminate "$WATCH" com.warhound.orbit.watchkitapp || true
+            xcrun simctl launch "$WATCH" com.warhound.orbit.watchkitapp -demo -demoPage 2
             sleep 6
             xcrun simctl io "$WATCH" screenshot watch-2-downloaded.png
           fi

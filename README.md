@@ -1,5 +1,7 @@
 # Orbit
 
+By Warhound.
+
 A podcast player for iPhone. SwiftUI and SwiftData, iOS 17+, needs Xcode 16 or later.
 
 | Latest | Library | Player | Search |
@@ -40,8 +42,9 @@ Product → Scheme → Edit Scheme → Run → Arguments, and add `-demo`.
 3. In Xcode: select the Orbit target → Signing & Capabilities → Team → your Apple ID
    (add it under Xcode → Settings → Accounts if it isn't listed). With a free Apple ID the app
    expires after 7 days and needs re-running from Xcode.
-4. Change the bundle ID `com.tomlandy.Orbit` if it clashes. Pick the final one before your
-   first TestFlight upload, since it can't change after that.
+4. The bundle ID is `com.warhound.orbit` (one setting, `ORBIT_BUNDLE_ID`, in the project's
+   build settings; the watch app, widgets and app group follow it). It can't change after
+   the first TestFlight upload.
 5. Pick the phone as the run destination and press Cmd+R. The first time, trust the developer
    on the phone under Settings → General → VPN & Device Management.
 

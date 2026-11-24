@@ -8,7 +8,7 @@ import SwiftData
 @Observable
 final class DownloadManager: NSObject {
     static let shared = DownloadManager()
-    static let sessionID = "com.tomlandy.Orbit.downloads"
+    static let sessionID = "com.warhound.orbit.downloads"
     static let wifiOnlyKey = "downloadWifiOnly"
     static let removePlayedKey = "removePlayedDownloads"
     static let keepPerShowKey = "downloadsPerShow"

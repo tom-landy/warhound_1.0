@@ -94,6 +94,7 @@ struct SettingsView: View {
                 }
 
                 Section("About") {
+                    LabeledContent("Developer", value: "Warhound")
                     LabeledContent("Version", value: Self.version)
                     LabeledContent("Built", value: Self.buildDate)
                 }

@@ -9,7 +9,7 @@
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.tomlandy.Orbit.refresh</string>
+		<string>com.warhound.orbit.refresh</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
