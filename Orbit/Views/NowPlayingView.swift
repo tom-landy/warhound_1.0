@@ -5,6 +5,8 @@ struct NowPlayingView: View {
     @Environment(AudioPlayer.self) private var player
     @State private var scrubTime: TimeInterval = 0
     @State private var showsNotes = false
+    @State private var showsUpNext = DemoData.isActive && UserDefaults.standard.bool(forKey: "demoUpNext")
+    @State private var showsChapters = DemoData.isActive && UserDefaults.standard.bool(forKey: "demoChapters")
 
     var body: some View {
         if let episode = player.episode {
@@ -30,6 +32,20 @@ struct NowPlayingView: View {
                         .font(.body)
                         .foregroundStyle(.tint)
                         .lineLimit(1)
+                    if let chapter = player.currentChapter {
+                        Button { showsChapters = true } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "list.bullet.rectangle")
+                                Text(chapter.title.isEmpty ? "Chapter \((player.currentChapterIndex ?? 0) + 1)" : chapter.title)
+                                    .lineLimit(1)
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 2)
+                        .accessibilityHint("Shows chapters")
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -49,6 +65,8 @@ struct NowPlayingView: View {
             .sheet(isPresented: $showsNotes) {
                 EpisodeNotesView(episode: episode)
             }
+            .sheet(isPresented: $showsUpNext) { UpNextView() }
+            .sheet(isPresented: $showsChapters) { ChaptersView() }
         }
     }
 
@@ -116,33 +134,96 @@ struct NowPlayingView: View {
     }
 
     private var accessories: some View {
-        @Bindable var player = player
-        return HStack {
-            Menu {
-                Picker("Speed", selection: $player.speed) {
-                    ForEach(AudioPlayer.speeds, id: \.self) { s in
-                        Text(Self.speedLabel(s)).tag(s)
-                    }
-                }
-            } label: {
-                Text(Self.speedLabel(player.speed))
-                    .font(.subheadline.weight(.bold).monospacedDigit())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.white.opacity(0.1), in: Capsule())
-            }
+        HStack {
+            speedMenu
+            Spacer()
+            sleepMenu
             Spacer()
             RoutePicker()
                 .frame(width: 44, height: 44)
+            Spacer()
+            Button { showsUpNext = true } label: {
+                Image(systemName: "list.bullet")
+                    .font(.title3)
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Up Next")
             Spacer()
             Button { showsNotes = true } label: {
                 Image(systemName: "text.alignleft")
                     .font(.title3)
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("Episode notes")
+            .accessibilityLabel("Episode Notes")
         }
         .foregroundStyle(.secondary)
+    }
+
+    private var speedMenu: some View {
+        @Bindable var player = player
+        let podcast = player.episode?.podcast
+        return Menu {
+            Picker("Speed", selection: $player.speed) {
+                ForEach(AudioPlayer.speeds, id: \.self) { s in
+                    Text(Self.speedLabel(s)).tag(s)
+                }
+            }
+            if let podcast {
+                Section {
+                    if podcast.playbackSpeed != nil {
+                        Button("Use Default Speed for This Show") {
+                            podcast.playbackSpeed = nil
+                            player.speed = player.defaultSpeed
+                        }
+                    } else {
+                        Button("Keep This Speed for This Show") {
+                            podcast.playbackSpeed = player.speed
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(Self.speedLabel(player.speed))
+                if podcast?.playbackSpeed != nil {
+                    Circle().fill(.tint).frame(width: 5, height: 5)
+                }
+            }
+            .font(.subheadline.weight(.bold).monospacedDigit())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.white.opacity(0.1), in: Capsule())
+        }
+        .accessibilityLabel("Speed \(Self.speedLabel(player.speed))")
+    }
+
+    private var sleepMenu: some View {
+        Menu {
+            Button("Off") { player.setSleepTimer(.off) }
+            Button("15 Minutes") { player.setSleepTimer(minutes: 15) }
+            Button("30 Minutes") { player.setSleepTimer(minutes: 30) }
+            Button("60 Minutes") { player.setSleepTimer(minutes: 60) }
+            Button("End of Episode") { player.setSleepTimer(.endOfEpisode) }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: player.sleepTimer == .off ? "moon.zzz" : "moon.zzz.fill")
+                    .font(.title3)
+                switch player.sleepTimer {
+                case .off:
+                    EmptyView()
+                case .endOfEpisode:
+                    Text("End").font(.caption.weight(.semibold))
+                case .at(let date):
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        Text(max(0, date.timeIntervalSinceNow).clock)
+                            .font(.caption.weight(.semibold).monospacedDigit())
+                    }
+                }
+            }
+            .foregroundStyle(player.sleepTimer == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+            .frame(minWidth: 44, minHeight: 44)
+        }
+        .accessibilityLabel("Sleep Timer")
     }
 
     private func backdrop(_ episode: Episode) -> some View {

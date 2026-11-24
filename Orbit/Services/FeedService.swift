@@ -77,13 +77,21 @@ enum FeedService {
     @discardableResult
     private static func merge(_ parsed: ParsedFeed, into podcast: Podcast, context: ModelContext) -> [Episode] {
         var added: [Episode] = []
-        let known = Set(podcast.episodes.map(\.guid))
+        let existing = Dictionary(podcast.episodes.map { ($0.guid, $0) }, uniquingKeysWith: { a, _ in a })
+        for item in parsed.items {
+            if let episode = existing[item.guid], episode.chaptersURL == nil, let url = item.chaptersURL {
+                episode.chaptersURL = url
+                episode.chaptersChecked = false
+            }
+        }
+        let known = Set(existing.keys)
         let prefix = podcast.feedURL.absoluteString + "#"
         for item in parsed.items where !known.contains(item.guid) {
             guard let audio = item.audioURL else { continue }
             let episode = Episode(key: prefix + item.guid, guid: item.guid, title: item.title,
                                   summary: item.summary.plainText, pubDate: item.pubDate ?? .distantPast,
                                   duration: item.duration, audioURL: audio, artworkURL: item.artworkURL)
+            episode.chaptersURL = item.chaptersURL
             context.insert(episode)
             episode.podcast = podcast
             added.append(episode)

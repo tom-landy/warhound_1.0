@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         run: |
-          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift tools/feedcheck/main.swift -o /tmp/feedcheck
+          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift tools/feedcheck/main.swift -o /tmp/feedcheck
           /tmp/feedcheck tools/feedcheck/overcast-sample.opml
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
@@ -88,6 +88,8 @@ jobs:
           NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
           NAME=7-library-blue shoot -demoTab library -accentTheme blue
           NAME=8-import shoot -demoTab latest -demoImport YES
+          NAME=9-upnext shoot -demoTab latest -demoPlayer YES -demoUpNext YES
+          NAME=10-chapters shoot -demoTab latest -demoPlayer YES -demoChapters YES
           xcrun simctl terminate "$UDID" com.tomlandy.Orbit || true
           xcrun simctl launch "$UDID" com.tomlandy.Orbit
           sleep 5

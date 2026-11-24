@@ -20,6 +20,12 @@ final class Episode {
     var localFileName: String?
     var downloadedAt: Date?
     var fileSize: Int = 0
+    /// Position in Up Next; nil when not queued. Lower plays first.
+    var queueOrder: Double?
+    /// Podcasting 2.0 chapters file, if the feed has one.
+    var chaptersURL: URL?
+    var chaptersData: Data?
+    var chaptersChecked: Bool = false
     var podcast: Podcast?
 
     init(key: String, guid: String, title: String, summary: String, pubDate: Date,
@@ -46,6 +52,13 @@ final class Episode {
     var remaining: TimeInterval { max(0, duration - playbackPosition) }
 
     var isDownloaded: Bool { localFileName != nil }
+
+    var isQueued: Bool { queueOrder != nil }
+
+    var chapters: [Chapter] {
+        guard let chaptersData else { return [] }
+        return (try? JSONDecoder().decode([Chapter].self, from: chaptersData)) ?? []
+    }
 
     var localFileURL: URL? {
         localFileName.map { DownloadManager.directory.appendingPathComponent($0) }

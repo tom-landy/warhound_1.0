@@ -16,6 +16,7 @@ struct ParsedEpisode: Sendable {
     var duration: TimeInterval = 0
     var audioURL: URL?
     var artworkURL: URL?
+    var chaptersURL: URL?
 }
 
 enum FeedError: LocalizedError {
@@ -59,6 +60,8 @@ final class FeedParser: NSObject, XMLParserDelegate {
         case "itunes:image", "googleplay:image":
             // iTunes art wins over anything else found.
             if let url = (attributes["href"] ?? attributes["url"]).flatMap(Self.url) { setArtwork(url, preferred: name == "itunes:image") }
+        case "podcast:chapters":
+            if let url = attributes["url"].flatMap(Self.url) { item?.chaptersURL = url }
         case "media:thumbnail":
             if let url = attributes["url"].flatMap(Self.url) { setArtwork(url, preferred: false) }
         case "media:content":

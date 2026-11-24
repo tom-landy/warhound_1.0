@@ -18,16 +18,42 @@ final class AudioPlayer {
     private(set) var isBuffering = false
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
+    /// Current speed. If the show has its own speed, changing this updates that show;
+    /// otherwise it changes the default for all shows.
     var speed: Float = 1.0 {
         didSet {
             player.defaultRate = speed
             if isPlaying { player.rate = speed }
-            UserDefaults.standard.set(speed, forKey: "playbackSpeed")
+            if let podcast = episode?.podcast, podcast.playbackSpeed != nil {
+                podcast.playbackSpeed = speed
+            } else {
+                UserDefaults.standard.set(speed, forKey: "playbackSpeed")
+            }
             updateNowPlaying()
         }
     }
     var isScrubbing = false
     var showsFullPlayer = false
+
+    enum SleepTimer: Equatable {
+        case off
+        case at(Date)
+        case endOfEpisode
+    }
+
+    private(set) var sleepTimer: SleepTimer = .off
+    private(set) var chapters: [Chapter] = []
+
+    var defaultSpeed: Float {
+        let saved = UserDefaults.standard.float(forKey: "playbackSpeed")
+        return saved > 0 ? saved : 1.0
+    }
+
+    var currentChapterIndex: Int? {
+        chapters.lastIndex { $0.start <= currentTime + 0.5 }
+    }
+
+    var currentChapter: Chapter? { currentChapterIndex.map { chapters[$0] } }
 
     private let player = AVPlayer()
     private var timeObserver: Any?
@@ -35,6 +61,7 @@ final class AudioPlayer {
     private var endObserver: NSObjectProtocol?
     private var lastSaved: Date = .distantPast
     private var artwork: MPMediaItemArtwork?
+    private var sleepTask: Task<Void, Never>?
 
     init() {
         let saved = UserDefaults.standard.float(forKey: "playbackSpeed")
@@ -73,10 +100,17 @@ final class AudioPlayer {
         self.episode = episode
         if episode.isPlayed { episode.isPlayed = false; episode.playbackPosition = 0 }
         episode.lastPlayedAt = .now
+        episode.queueOrder = nil // it's playing now, so it leaves Up Next
+        speed = episode.podcast?.playbackSpeed ?? defaultSpeed
+        // Skip the intro on a fresh start.
+        let intro = Double(episode.podcast?.skipIntro ?? 0)
+        if episode.playbackPosition < intro { episode.playbackPosition = intro }
         duration = episode.duration
         currentTime = episode.playbackPosition
         artwork = nil
         loadArtwork(for: episode)
+        chapters = episode.chapters
+        if !episode.chaptersChecked { loadChapters(for: episode) }
 
         let local = episode.localFileURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
         let item = AVPlayerItem(url: local ?? episode.audioURL)
@@ -136,6 +170,107 @@ final class AudioPlayer {
         }
     }
 
+    // MARK: - Up Next
+
+    /// Episodes queued after the current one, in play order.
+    func queue() -> [Episode] {
+        guard let context = AppEnvironment.container?.mainContext else { return [] }
+        let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.queueOrder != nil },
+                                                  sortBy: [SortDescriptor(\.queueOrder)])
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    func playNext(_ episode: Episode) {
+        guard !isCurrent(episode) else { return }
+        episode.queueOrder = (queue().first?.queueOrder ?? 0) - 1
+        saveQueue()
+    }
+
+    func addToQueue(_ episode: Episode) {
+        guard !isCurrent(episode) else { return }
+        episode.queueOrder = (queue().last?.queueOrder ?? 0) + 1
+        saveQueue()
+    }
+
+    func removeFromQueue(_ episode: Episode) {
+        episode.queueOrder = nil
+        saveQueue()
+    }
+
+    func moveQueue(from source: IndexSet, to destination: Int) {
+        var items = queue()
+        items.move(fromOffsets: source, toOffset: destination)
+        for (index, episode) in items.enumerated() { episode.queueOrder = Double(index) }
+        saveQueue()
+    }
+
+    func clearQueue() {
+        for episode in queue() { episode.queueOrder = nil }
+        saveQueue()
+    }
+
+    /// Starts the first episode in Up Next. Returns false if Up Next is empty.
+    @discardableResult
+    func playNextInQueue() -> Bool {
+        guard let next = queue().first(where: { !isCurrent($0) }) else { return false }
+        load(next, autoplay: true)
+        return true
+    }
+
+    private func saveQueue() {
+        try? AppEnvironment.container?.mainContext.save()
+        announce()
+    }
+
+    // MARK: - Sleep timer
+
+    func setSleepTimer(_ timer: SleepTimer) {
+        sleepTask?.cancel()
+        sleepTask = nil
+        sleepTimer = timer
+        guard case .at(let date) = timer else { return }
+        sleepTask = Task { [weak self] in
+            let fade: TimeInterval = 8
+            try? await Task.sleep(for: .seconds(max(0, date.timeIntervalSinceNow - fade)))
+            guard !Task.isCancelled, let self else { return }
+            // Fade out rather than cut off mid-sentence.
+            let steps = 16
+            for step in 1...steps {
+                guard !Task.isCancelled else { self.player.volume = 1; return }
+                self.player.volume = Float(steps - step) / Float(steps)
+                try? await Task.sleep(for: .seconds(fade / Double(steps)))
+            }
+            self.pause()
+            self.player.volume = 1
+            self.sleepTimer = .off
+        }
+    }
+
+    func setSleepTimer(minutes: Int) {
+        setSleepTimer(.at(.now.addingTimeInterval(TimeInterval(minutes * 60))))
+    }
+
+    // MARK: - Chapters
+
+    func seek(to chapter: Chapter) {
+        seek(to: chapter.start)
+        if !isPlaying { resume() }
+    }
+
+    private func loadChapters(for episode: Episode) {
+        let key = episode.key
+        let audio = episode.audioURL
+        let local = episode.localFileURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let chaptersURL = episode.chaptersURL
+        Task {
+            let found = await Chapters.load(audio: audio, localFile: local, chaptersURL: chaptersURL)
+            episode.chaptersData = found.isEmpty ? nil : try? JSONEncoder().encode(found)
+            episode.chaptersChecked = true
+            try? episode.modelContext?.save()
+            if self.episode?.key == key { self.chapters = found }
+        }
+    }
+
     // MARK: - Internals
 
     private func tick(_ seconds: TimeInterval) {
@@ -161,6 +296,11 @@ final class AudioPlayer {
                 try? episode.modelContext?.save()
                 self.currentTime = 0
                 DownloadManager.shared.episodePlayed(episode)
+                if self.sleepTimer == .endOfEpisode {
+                    self.setSleepTimer(.off)
+                } else {
+                    self.playNextInQueue()
+                }
             }
         }
     }

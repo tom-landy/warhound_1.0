@@ -6,7 +6,7 @@ import UIKit
 /// Needs Apple's CarPlay audio entitlement to appear in a real car. Until then it runs in
 /// Xcode's CarPlay Simulator (simulator builds use Config/CarPlay-Simulator.entitlements).
 @MainActor
-final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
+final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate, CPNowPlayingTemplateObserver {
     private var interfaceController: CPInterfaceController?
     private let latest = CPListTemplate(title: "Latest", sections: [])
     private let downloaded = CPListTemplate(title: "Downloaded", sections: [])
@@ -60,6 +60,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
 
     private func disconnect() {
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        CPNowPlayingTemplate.shared.remove(self)
         observers.removeAll()
         self.interfaceController = nil
     }
@@ -170,7 +171,9 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
 
     private func configureNowPlaying() {
         let nowPlaying = CPNowPlayingTemplate.shared
-        nowPlaying.isUpNextButtonEnabled = false
+        nowPlaying.isUpNextButtonEnabled = true
+        nowPlaying.upNextTitle = "Up Next"
+        nowPlaying.add(self)
         nowPlaying.isAlbumArtistButtonEnabled = false
         let rate = CPNowPlayingPlaybackRateButton { _ in
             MainActor.assumeIsolated {
@@ -181,6 +184,20 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
             }
         }
         nowPlaying.updateNowPlayingButtons([rate])
+    }
+
+    nonisolated func nowPlayingTemplateUpNextButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
+        MainActor.assumeIsolated { showUpNext() }
+    }
+
+    nonisolated func nowPlayingTemplateAlbumArtistButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {}
+
+    private func showUpNext() {
+        let queue = player.queue()
+        let template = CPListTemplate(title: "Up Next", sections: [CPListSection(items: items(Array(queue.prefix(itemLimit))))])
+        template.emptyViewTitleVariants = ["Up Next Is Empty"]
+        template.emptyViewSubtitleVariants = ["Add episodes to Up Next on iPhone."]
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
     }
 
     // MARK: - Helpers

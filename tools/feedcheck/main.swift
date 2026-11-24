@@ -1,6 +1,6 @@
 // Runs the app's own feed and OPML parsers against real feeds.
 // Built and run by CI (see .github/workflows/ios.yml):
-//   swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift tools/feedcheck/main.swift -o feedcheck
+//   swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift tools/feedcheck/main.swift -o feedcheck
 //   ./feedcheck tools/feedcheck/overcast-sample.opml
 import Foundation
 
@@ -63,4 +63,19 @@ for feed in checkable {
     }
 }
 print("\n\(checkable.count - failures)/\(checkable.count) feeds parsed")
+
+// Chapters: read only the ID3 tag (or chapters file) of each show's newest episode.
+print("\nChapters (newest episode):")
+for feed in checkable where ["Accidental Tech Podcast", "Connected", "Cortex", "Analog(ue)", "No Such Thing As A Fish"].contains(feed.title) {
+    guard let data = try? await URLSession.shared.data(from: feed.url).0,
+          let parsed = try? FeedParser.parse(data),
+          let newest = parsed.items.max(by: { ($0.pubDate ?? .distantPast) < ($1.pubDate ?? .distantPast) }),
+          let audio = newest.audioURL else { print("  \(feed.title): couldn't load"); continue }
+    let start = Date()
+    let chapters = await Chapters.load(audio: audio, localFile: nil, chaptersURL: newest.chaptersURL)
+    let ms = Int(Date().timeIntervalSince(start) * 1000)
+    let source = newest.chaptersURL != nil ? "chapters file" : "ID3"
+    print("  \(feed.title): \(chapters.count) chapters via \(source) in \(ms)ms")
+    for c in chapters.prefix(4) { print("     \(Int(c.start))s  \(c.title)") }
+}
 exit(failures > checkable.count / 2 ? 1 : 0)

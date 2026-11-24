@@ -13,6 +13,10 @@ final class Podcast {
     var lastRefreshed: Date?
     /// Download new episodes as they appear.
     var autoDownload: Bool = true
+    /// Speed for this show only; nil uses the default speed.
+    var playbackSpeed: Float?
+    /// Seconds to skip at the start of each episode.
+    var skipIntro: Int = 0
 
     @Relationship(deleteRule: .cascade, inverse: \Episode.podcast)
     var episodes: [Episode] = []

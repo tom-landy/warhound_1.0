@@ -4,6 +4,7 @@ import SwiftUI
 /// Sample library for screenshots and previews. Launch with `-demo`, optionally
 /// `-demoTab library|search|latest`, `-demoPlayer YES` to open the full player,
 /// `-demoSettings YES` to open Settings, `-demoImport YES` to open the import screen,
+/// `-demoUpNext YES` / `-demoChapters YES` (with `-demoPlayer YES`) for those sheets,
 /// and `-accentTheme blue` (any theme) to change colour.
 @MainActor
 enum DemoData {
@@ -30,7 +31,20 @@ enum DemoData {
                                 pubDate: .now.addingTimeInterval(Double(-86400 * day - 3600 * i)),
                                 duration: Double(1800 + 600 * ((i + j) % 5)),
                                 audioURL: URL(string: "https://example.com/audio/\(i)-\(j).mp3")!, artworkURL: nil)
-                if i == 1 && j == 0 { e.playbackPosition = 1260; e.lastPlayedAt = .now }
+                if i == 1 && j == 0 {
+                    e.playbackPosition = 1260
+                    e.lastPlayedAt = .now
+                    e.chaptersChecked = true
+                    e.chaptersData = try? JSONEncoder().encode([
+                        Chapter(start: 0, title: "Intro"),
+                        Chapter(start: 95, title: "Listener questions"),
+                        Chapter(start: 610, title: "Priming and undercoats"),
+                        Chapter(start: 1180, title: "Speed painting the rank and file"),
+                        Chapter(start: 1720, title: "Basing in bulk"),
+                        Chapter(start: 2140, title: "Wrap-up"),
+                    ])
+                }
+                if (i == 0 && j == 1) || (i == 3 && j == 0) || (i == 4 && j == 0) { e.queueOrder = Double(i) }
                 if i == 2 && j == 1 { e.isPlayed = true }
                 if (i == 0 && j < 2) || (i == 1 && j == 0) || i == 3 {
                     e.localFileName = "demo-\(i)-\(j).mp3"

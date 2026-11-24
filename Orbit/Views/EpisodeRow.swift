@@ -41,7 +41,49 @@ struct EpisodeRow: View {
         .contentShape(Rectangle())
         .onTapGesture { showsNotes = true }
         .sheet(isPresented: $showsNotes) { EpisodeNotesView(episode: episode) }
+        .contextMenu {
+            if !player.isCurrent(episode) {
+                Button { player.playNext(episode) } label: {
+                    Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                }
+                if episode.isQueued {
+                    Button { player.removeFromQueue(episode) } label: {
+                        Label("Remove from Up Next", systemImage: "minus.circle")
+                    }
+                } else {
+                    Button { player.addToQueue(episode) } label: {
+                        Label("Add to Up Next", systemImage: "text.line.last.and.arrowtriangle.forward")
+                    }
+                }
+            }
+            Divider()
+            Button {
+                episode.isPlayed.toggle()
+                if episode.isPlayed {
+                    episode.playbackPosition = 0
+                    downloads.episodePlayed(episode)
+                }
+            } label: {
+                Label(episode.isPlayed ? "Mark as Unplayed" : "Mark as Played",
+                      systemImage: episode.isPlayed ? "circle" : "checkmark.circle")
+            }
+            if episode.isDownloaded {
+                Button(role: .destructive) { downloads.remove(episode) } label: {
+                    Label("Remove Download", systemImage: "trash")
+                }
+            } else if downloads.state(episode) == .none || downloads.state(episode) == .failed {
+                Button { downloads.download(episode) } label: {
+                    Label("Download", systemImage: "arrow.down.circle")
+                }
+            }
+        }
         .swipeActions(edge: .leading) {
+            if !player.isCurrent(episode) && !episode.isQueued {
+                Button { player.addToQueue(episode) } label: {
+                    Label("Up Next", systemImage: "text.line.last.and.arrowtriangle.forward")
+                }
+                .tint(.indigo)
+            }
             Button {
                 episode.isPlayed.toggle()
                 if episode.isPlayed {
@@ -69,7 +111,7 @@ struct EpisodeRow: View {
     }
 
     private var header: String {
-        let date = episode.pubDate.episodeDate.uppercased()
+        let date = (episode.isQueued ? "UP NEXT · " : "") + episode.pubDate.episodeDate.uppercased()
         guard showsPodcast, let title = episode.podcast?.title else { return date }
         return "\(date) · \(title.uppercased())"
     }

@@ -8,6 +8,7 @@ struct PodcastDetailView: View {
     @Environment(DownloadManager.self) private var downloads
     @State private var expanded = false
     @State private var hidePlayed = false
+    @State private var showsSettings = false
 
     private var episodes: [Episode] {
         let all = podcast.sortedEpisodes
@@ -37,9 +38,13 @@ struct PodcastDetailView: View {
         .listStyle(.plain)
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { try? await FeedService.refresh(podcast, context: context) }
+        .sheet(isPresented: $showsSettings) { ShowSettingsView(podcast: podcast) }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button { showsSettings = true } label: {
+                        Label("Show Settings", systemImage: "slider.horizontal.3")
+                    }
                     Toggle(isOn: $podcast.autoDownload) {
                         Label("Keep Latest Downloaded", systemImage: "arrow.down.circle")
                     }
