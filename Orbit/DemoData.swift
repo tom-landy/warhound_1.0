@@ -58,10 +58,10 @@ enum DemoData {
         }
         // Five weeks of made-up listening for the stats screen.
         let calendar = Calendar.current
-        let shows = [("The Long Game", 0), ("Painted Armies", 1), ("Night Shift", 2), ("Field Notes", 3)]
+        let statShows = [("The Long Game", 0), ("Painted Armies", 1), ("Night Shift", 2), ("Field Notes", 3)]
         for offset in 0..<35 where offset % 6 != 5 {
             let day = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -offset, to: .now)!)
-            for (title, i) in shows where (offset + i) % 3 != 0 {
+            for (title, i) in statShows where (offset + i) % 3 != 0 {
                 let entry = ListeningDay(day: day, feedURL: "https://example.com/feed/\(i)", showTitle: title)
                 entry.listened = Double(900 + ((offset * 7 + i * 13) % 9) * 420)
                 entry.content = entry.listened * 1.35
