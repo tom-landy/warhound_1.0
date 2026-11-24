@@ -11,8 +11,8 @@ struct IPadRootView: View {
     var body: some View {
         GeometryReader { geo in
             let portrait = geo.size.height > geo.size.width
-            HStack(spacing: 12) {
-                VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                VStack(spacing: 8) {
                     DownloadedShowsPanel(sheet: $sheet, openShow: $openShow)
                     if portrait {
                         // Portrait: artwork, then chapters, then the controls at the bottom.
@@ -30,7 +30,7 @@ struct IPadRootView: View {
                     ChaptersPanel().frame(width: 320)
                 }
             }
-            .padding(12)
+            .padding(8)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
@@ -48,7 +48,7 @@ private struct Panel<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -165,7 +165,7 @@ private struct NowPlayingCard: View {
     @ScaledMetric(relativeTo: .title) private var playSize: CGFloat = 56
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if part != .controls { PanelLabel(text: "Now Playing") }
             if let episode = player.episode {
                 if part == .artwork {
@@ -228,9 +228,9 @@ private struct NowPlayingCard: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func titles(_ episode: Episode) -> some View {
@@ -318,7 +318,7 @@ private struct EpisodeNotesPanel: View {
                     .lineSpacing(4)
                     .textSelection(.enabled)
             }
-            .padding(28)
+            .padding(22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -356,7 +356,7 @@ private struct ChaptersPanel: View {
                                                 .multilineTextAlignment(.leading)
                                             Spacer(minLength: 0)
                                         }
-                                        .padding(.vertical, 9)
+                                        .padding(.vertical, 7)
                                         .padding(.horizontal, 8)
                                         .background(current ? Color.primary.opacity(0.08) : .clear,
                                                     in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -374,8 +374,8 @@ private struct ChaptersPanel: View {
                     }
                 }
             }
-            .padding(.vertical, 22)
-            .padding(.horizontal, 10)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 8)
         }
     }
 }

@@ -38,7 +38,7 @@ struct MiniPlayerView: View {
             .buttonStyle(.plain)
             .padding(.leading, 8)
             .padding(.trailing, 4)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             .background {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.regularMaterial)

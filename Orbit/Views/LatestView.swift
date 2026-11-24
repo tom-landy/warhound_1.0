@@ -51,6 +51,7 @@ struct LatestView: View {
                     }
                 }
                 .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
                 .refreshable { await FeedService.refreshAll(context: context) }
             }
         }

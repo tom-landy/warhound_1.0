@@ -16,7 +16,7 @@ struct DownloadButton: View {
             }
         } label: {
             icon(state)
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -41,6 +41,7 @@ struct DownloadsView: View {
             }
         }
         .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
         .overlay {
             if downloaded.isEmpty && downloads.active.isEmpty {
                 ContentUnavailableView {

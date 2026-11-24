@@ -7,7 +7,7 @@ struct LibraryView: View {
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }, sort: \Podcast.title)
     private var podcasts: [Podcast]
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
 
     var body: some View {
         Group {
@@ -26,13 +26,14 @@ struct LibraryView: View {
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding()
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 11)
                         .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal)
-                    .padding(.top, 8)
-                    LazyVGrid(columns: columns, spacing: 20) {
+                    .padding(.top, 4)
+                    LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(podcasts) { podcast in
                             NavigationLink(value: podcast) {
                                 LibraryCell(podcast: podcast)
@@ -82,7 +83,7 @@ private struct LibraryCell: View {
     private var unplayed: Int { podcast.episodes.lazy.filter { !$0.isPlayed }.count }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             ArtworkView(url: podcast.artworkURL, seed: podcast.title, cornerRadius: 12)
                 .overlay(alignment: .topTrailing) {
                     if unplayed > 0 {

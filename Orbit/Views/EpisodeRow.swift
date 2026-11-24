@@ -9,12 +9,12 @@ struct EpisodeRow: View {
     @State private var showsNotes = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             if showsPodcast {
                 ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 8)
-                    .frame(width: 60, height: 60)
+                    .frame(width: 52, height: 52)
             }
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(header)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -34,10 +34,10 @@ struct EpisodeRow: View {
                     Spacer()
                     DownloadButton(episode: episode)
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture { showsNotes = true }
         // VoiceOver: one element per episode; double-tap plays, the rest are actions.
@@ -183,8 +183,8 @@ struct PlayCapsule: View {
                 Text(label)
                     .font(.caption.weight(.semibold).monospacedDigit())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
             .foregroundStyle(current ? AccentTheme.onColor : theme.color)
             .background(current ? theme.color : theme.color.opacity(0.15), in: Capsule())
         }

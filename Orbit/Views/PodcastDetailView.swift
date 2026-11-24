@@ -36,6 +36,7 @@ struct PodcastDetailView: View {
             }
         }
         .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { try? await FeedService.refresh(podcast, context: context) }
         .sheet(isPresented: $showsSettings) { ShowSettingsView(podcast: podcast) }

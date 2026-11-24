@@ -29,6 +29,7 @@ struct AllEpisodesView: View {
             ForEach(list) { EpisodeRow(episode: $0, showsPodcast: true) }
         }
         .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
         .safeAreaInset(edge: .top, spacing: 0) {
             Picker("Show", selection: $filter) {
                 ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }

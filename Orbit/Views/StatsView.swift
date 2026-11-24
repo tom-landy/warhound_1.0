@@ -12,13 +12,13 @@ struct StatsView: View {
     var body: some View {
         let summary = ListeningStats.summary(range, days: days)
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                 Picker("Range", selection: $range) {
                     ForEach(ListeningStats.Range.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
 
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     Tile(label: "Listening Time", value: summary.listened.hoursMinutes)
                     Tile(label: "Time Saved", value: summary.saved.hoursMinutes, note: "From playback speed")
                     Tile(label: "Episodes Finished", value: "\(summary.finished)")

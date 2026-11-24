@@ -169,8 +169,8 @@ private struct MiniPlayerInset: ViewModifier {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             if player.episode != nil {
                 MiniPlayerView()
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 6)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 4)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
