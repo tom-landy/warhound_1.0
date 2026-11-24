@@ -26,7 +26,7 @@ Not built yet: downloads for offline listening, an Up Next queue, a sleep timer,
 
 ## Run on your Mac
 
-    git clone https://github.com/tom-landy/warhound_1.0.git
+    git clone -b claude/eloquent-davinci-jay3rl https://github.com/tom-landy/warhound_1.0.git
     cd warhound_1.0
     open Orbit.xcodeproj
 
