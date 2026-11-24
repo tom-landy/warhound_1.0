@@ -29,7 +29,6 @@ jobs:
         run: xcodebuild -version
       - name: Build for simulator
         run: |
-          set -o pipefail
           xcodebuild \
             -project Orbit.xcodeproj \
             -target Orbit \
@@ -37,11 +36,11 @@ jobs:
             -configuration Debug \
             SYMROOT="$PWD/build" \
             CODE_SIGNING_ALLOWED=NO \
-            build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
-          test -d build/Debug-iphonesimulator/Orbit.app
+            build > ios-build.log 2>&1 || true
+          grep -E "error:|warning: .*(Orbit|Shared)/|BUILD (SUCCEEDED|FAILED)" ios-build.log || true
+          grep -q "BUILD SUCCEEDED" ios-build.log
       - name: Build watch app
         run: |
-          set -o pipefail
           xcodebuild \
             -project Orbit.xcodeproj \
             -target OrbitWatch \
@@ -49,8 +48,9 @@ jobs:
             -configuration Debug \
             SYMROOT="$PWD/build" \
             CODE_SIGNING_ALLOWED=NO \
-            build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
-          test -d "build/Debug-watchsimulator/Orbit Watch.app"
+            build > watch-build.log 2>&1 || true
+          grep -E "error:|warning: .*(OrbitWatch|Shared)/|BUILD (SUCCEEDED|FAILED)" watch-build.log || true
+          grep -q "BUILD SUCCEEDED" watch-build.log
       - name: Feed parser check
         continue-on-error: true
         timeout-minutes: 5

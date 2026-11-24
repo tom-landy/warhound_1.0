@@ -19,7 +19,16 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
     private var context: ModelContext? { AppEnvironment.container?.mainContext }
     private var itemLimit: Int { min(40, CPListTemplate.maximumItemCount) }
 
-    func templateApplicationScene(_ scene: CPTemplateApplicationScene, didConnect interfaceController: CPInterfaceController) {
+    // CarPlay calls these on the main thread, but the protocol isn't marked @MainActor.
+    nonisolated func templateApplicationScene(_ scene: CPTemplateApplicationScene, didConnect interfaceController: CPInterfaceController) {
+        MainActor.assumeIsolated { connect(interfaceController) }
+    }
+
+    nonisolated func templateApplicationScene(_ scene: CPTemplateApplicationScene, didDisconnectInterfaceController interfaceController: CPInterfaceController) {
+        MainActor.assumeIsolated { disconnect() }
+    }
+
+    private func connect(_ interfaceController: CPInterfaceController) {
         self.interfaceController = interfaceController
 
         latest.tabTitle = "Latest"
@@ -49,7 +58,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         })
     }
 
-    func templateApplicationScene(_ scene: CPTemplateApplicationScene, didDisconnectInterfaceController interfaceController: CPInterfaceController) {
+    private func disconnect() {
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
         observers.removeAll()
         self.interfaceController = nil

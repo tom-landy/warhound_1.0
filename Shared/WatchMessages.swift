@@ -8,6 +8,8 @@ struct WatchEpisode: Codable, Identifiable, Hashable {
     let show: String
     let remaining: Double
     let downloaded: Bool
+
+    var id: String { key }
 }
 
 /// Everything the watch shows, sent from the phone as one application-context update.
