@@ -37,6 +37,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Debug-iphonesimulator/Orbit.app
+      - name: Feed parser check
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift tools/feedcheck/main.swift -o /tmp/feedcheck
+          /tmp/feedcheck tools/feedcheck/overcast-sample.opml
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
         timeout-minutes: 12
