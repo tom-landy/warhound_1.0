@@ -26,6 +26,8 @@ Screenshots use built-in demo data. Regenerate them from Actions â†’ iOS build â
 
 Not built yet: downloads for offline listening, an Up Next queue, a sleep timer, chapters, background refresh, CarPlay.
 
+App Store submission pack (listing text, privacy, screenshots, upload from Xcode): [docs/APPSTORE.md](docs/APPSTORE.md).
+
 Full step-by-step device setup, testing checklist and the TestFlight path: [docs/DEPLOYING.md](docs/DEPLOYING.md).
 
 ## Run on your Mac
