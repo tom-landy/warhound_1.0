@@ -126,13 +126,19 @@ jobs:
             xcrun simctl bootstatus "$IPAD" -b
             xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryLevel 100
             xcrun simctl install "$IPAD" ../../build/Debug-iphonesimulator/Orbit.app
-            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoTab library
+            # Portrait first (simulator default), then rotate via the Simulator's device orientation setting
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo
             sleep 8
-            xcrun simctl io "$IPAD" screenshot ipad-1-library.png
+            xcrun simctl io "$IPAD" screenshot ipad-1-portrait-dark.png
             xcrun simctl terminate "$IPAD" com.warhound.orbit || true
-            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoTab latest -demoPlayer YES -appearance light
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -appearance light
             sleep 8
-            xcrun simctl io "$IPAD" screenshot ipad-2-player-light.png
+            xcrun simctl io "$IPAD" screenshot ipad-2-portrait-light.png
+            xcrun simctl terminate "$IPAD" com.warhound.orbit || true
+            # Landscape: ask the app to lay out as landscape for the screenshot
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoLandscape YES
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-3-landscape-dark.png
             xcrun simctl shutdown "$IPAD" || true
             sips --resampleWidth 900 ipad-*.png >/dev/null
           fi

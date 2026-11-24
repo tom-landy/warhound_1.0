@@ -18,24 +18,30 @@ struct RootView: View {
     private var quickActions = QuickActions.shared
     @State private var demoSheet: String?
     @AppStorage(AppAppearance.chosenKey) private var appearanceChosen = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var ipadSheet: IPadSheet?
+    @State private var ipadShow: Podcast?
+
+    /// The iPad layout on a full-width iPad; the tab layout everywhere else
+    /// (iPhone, iPad Split View and Slide Over, narrow windows).
+    private var usesIPadLayout: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
+    }
 
     var body: some View {
         @Bindable var player = player
-        TabView(selection: $tab) {
-            NavigationStack { LatestView(tab: $tab) }
-                .miniPlayerInset()
-                .tabItem { Label("Latest", systemImage: "clock") }
-                .tag(AppTab.latest)
-            NavigationStack(path: $libraryPath) { LibraryView(tab: $tab) }
-                .miniPlayerInset()
-                .tabItem { Label("Library", systemImage: "square.grid.2x2") }
-                .tag(AppTab.library)
-            NavigationStack { SearchView() }
-                .miniPlayerInset()
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                .tag(AppTab.search)
+        Group {
+            if usesIPadLayout {
+                IPadRootView(sheet: $ipadSheet, openShow: $ipadShow)
+                    .sheet(item: $ipadSheet) { sheet in
+                        NavigationStack { ipadSheetContent(sheet) }
+                    }
+            } else {
+                tabs
+            }
         }
-        .sheet(isPresented: $player.showsFullPlayer) {
+        .sheet(isPresented: Binding(get: { player.showsFullPlayer && !usesIPadLayout },
+                                    set: { player.showsFullPlayer = $0 })) {
             NowPlayingView()
         }
         .sheet(item: $importRequest) { ImportView(file: $0.file) }
@@ -58,7 +64,8 @@ struct RootView: View {
                 player.resume()
                 player.showsFullPlayer = true
             case .upNext: showsUpNext = true
-            case .search: tab = .search
+            case .search:
+                if usesIPadLayout { ipadSheet = .search } else { tab = .search }
             }
         }
         .onChange(of: quickActions.open, initial: true) { _, id in
@@ -79,6 +86,10 @@ struct RootView: View {
                 if UserDefaults.standard.bool(forKey: "demoImport") { importRequest = ImportRequest() }
                 if UserDefaults.standard.bool(forKey: "demoStats") { demoSheet = "stats" }
                 if UserDefaults.standard.bool(forKey: "demoWidgets") { demoSheet = "widgets" }
+                if UserDefaults.standard.bool(forKey: "demoLandscape"),
+                   let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+                }
             } else {
                 await refreshIfStale(force: true)
             }
@@ -91,6 +102,36 @@ struct RootView: View {
 }
 
 extension RootView {
+    private var tabs: some View {
+        TabView(selection: $tab) {
+            NavigationStack { LatestView(tab: $tab) }
+                .miniPlayerInset()
+                .tabItem { Label("Latest", systemImage: "clock") }
+                .tag(AppTab.latest)
+            NavigationStack(path: $libraryPath) { LibraryView(tab: $tab) }
+                .miniPlayerInset()
+                .tabItem { Label("Library", systemImage: "square.grid.2x2") }
+                .tag(AppTab.library)
+            NavigationStack { SearchView() }
+                .miniPlayerInset()
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tag(AppTab.search)
+        }
+    }
+
+    @ViewBuilder
+    fileprivate func ipadSheetContent(_ sheet: IPadSheet) -> some View {
+        switch sheet {
+        case .latest: LatestView(tab: $tab)
+        case .library: LibraryView(tab: $tab)
+        case .search: SearchView()
+        case .upNext: UpNextView()
+        case .settings: SettingsView()
+        case .downloads: DownloadsView()
+        case .stats: StatsView()
+        }
+    }
+
     fileprivate func refreshIfStale(force: Bool = false) async {
         guard force || Date.now.timeIntervalSince1970 - lastRefreshAll > 15 * 60 else { return }
         lastRefreshAll = Date.now.timeIntervalSince1970
@@ -102,16 +143,20 @@ extension RootView {
         if id.hasPrefix(SpotlightIndex.showPrefix) {
             let feed = String(id.dropFirst(SpotlightIndex.showPrefix.count))
             guard let podcast = try? context.fetch(FetchDescriptor<Podcast>()).first(where: { $0.feedURL.absoluteString == feed }) else { return }
-            tab = .library
-            libraryPath = NavigationPath()
-            libraryPath.append(podcast)
+            if usesIPadLayout {
+                ipadShow = podcast
+            } else {
+                tab = .library
+                libraryPath = NavigationPath()
+                libraryPath.append(podcast)
+            }
         } else if id.hasPrefix(SpotlightIndex.episodePrefix) {
             let key = String(id.dropFirst(SpotlightIndex.episodePrefix.count))
             var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
             descriptor.fetchLimit = 1
             guard let episode = try? context.fetch(descriptor).first else { return }
             if !player.isCurrent(episode) { player.load(episode, autoplay: false) }
-            player.showsFullPlayer = true
+            if usesIPadLayout { ipadShow = nil } else { player.showsFullPlayer = true }
         }
     }
 }

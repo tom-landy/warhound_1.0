@@ -5,7 +5,6 @@ struct NowPlayingView: View {
     @Environment(AudioPlayer.self) private var player
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var scrubTime: TimeInterval = 0
     @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 78
     @ScaledMetric(relativeTo: .title) private var skipSize: CGFloat = 32
     @State private var showsNotes = false
@@ -53,7 +52,7 @@ struct NowPlayingView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                scrubber
+                ScrubberView()
                     .padding(.top, 20)
 
                 transport
@@ -77,37 +76,6 @@ struct NowPlayingView: View {
     }
 
     // MARK: - Pieces
-
-    private var displayedTime: TimeInterval {
-        player.isScrubbing ? scrubTime : player.currentTime
-    }
-
-    private var scrubber: some View {
-        VStack(spacing: 6) {
-            Slider(
-                value: Binding(get: { displayedTime }, set: { scrubTime = $0 }),
-                in: 0...max(player.duration, 1),
-                onEditingChanged: { editing in
-                if editing {
-                    scrubTime = player.currentTime
-                    player.isScrubbing = true
-                } else {
-                    player.seek(to: scrubTime)
-                    player.isScrubbing = false
-                }
-            })
-            .accessibilityLabel("Position")
-            .accessibilityValue("\(displayedTime.spoken.isEmpty ? "0 min" : displayedTime.spoken) of \(player.duration.spoken)")
-            HStack {
-                Text(displayedTime.clock)
-                Spacer()
-                Text("-" + max(0, player.duration - displayedTime).clock)
-            }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
-            .accessibilityHidden(true)
-        }
-    }
 
     private var transport: some View {
         HStack {
@@ -144,9 +112,9 @@ struct NowPlayingView: View {
 
     private var accessories: some View {
         HStack {
-            speedMenu
+            SpeedMenuButton()
             Spacer()
-            sleepMenu
+            SleepMenuButton()
             Spacer()
             RoutePicker()
                 .frame(width: 44, height: 44)
@@ -168,74 +136,6 @@ struct NowPlayingView: View {
         .foregroundStyle(.secondary)
     }
 
-    private var speedMenu: some View {
-        @Bindable var player = player
-        let podcast = player.episode?.podcast
-        return Menu {
-            Picker("Speed", selection: $player.speed) {
-                ForEach(AudioPlayer.speeds, id: \.self) { s in
-                    Text(Self.speedLabel(s)).tag(s)
-                }
-            }
-            if let podcast {
-                Section {
-                    if podcast.playbackSpeed != nil {
-                        Button("Use Default Speed for This Show") {
-                            podcast.playbackSpeed = nil
-                            player.speed = player.defaultSpeed
-                        }
-                    } else {
-                        Button("Keep This Speed for This Show") {
-                            podcast.playbackSpeed = player.speed
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 3) {
-                Text(Self.speedLabel(player.speed))
-                if podcast?.playbackSpeed != nil {
-                    Circle().fill(.tint).frame(width: 5, height: 5)
-                }
-            }
-            .font(.subheadline.weight(.bold).monospacedDigit())
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.primary.opacity(0.1), in: Capsule())
-        }
-        .accessibilityLabel("Speed \(Self.speedLabel(player.speed))")
-    }
-
-    private var sleepMenu: some View {
-        Menu {
-            Button("Off") { player.setSleepTimer(.off) }
-            Button("15 Minutes") { player.setSleepTimer(minutes: 15) }
-            Button("30 Minutes") { player.setSleepTimer(minutes: 30) }
-            Button("60 Minutes") { player.setSleepTimer(minutes: 60) }
-            Button("End of Episode") { player.setSleepTimer(.endOfEpisode) }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: player.sleepTimer == .off ? "moon.zzz" : "moon.zzz.fill")
-                    .font(.title3)
-                switch player.sleepTimer {
-                case .off:
-                    EmptyView()
-                case .endOfEpisode:
-                    Text("End").font(.caption.weight(.semibold))
-                case .at(let date):
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        Text(max(0, date.timeIntervalSinceNow).clock)
-                            .font(.caption.weight(.semibold).monospacedDigit())
-                    }
-                }
-            }
-            .foregroundStyle(player.sleepTimer == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-            .frame(minWidth: 44, minHeight: 44)
-        }
-        .accessibilityLabel("Sleep Timer")
-        .accessibilityValue(sleepDescription)
-    }
-
     private func backdrop(_ episode: Episode) -> some View {
         ZStack {
             Color(.systemBackground)
@@ -247,14 +147,6 @@ struct NowPlayingView: View {
                            startPoint: .top, endPoint: .bottom)
         }
         .ignoresSafeArea()
-    }
-
-    private var sleepDescription: String {
-        switch player.sleepTimer {
-        case .off: "Off"
-        case .endOfEpisode: "End of episode"
-        case .at(let date): "\(max(0, date.timeIntervalSinceNow).spoken) left"
-        }
     }
 
     static func speedLabel(_ s: Float) -> String {
@@ -290,7 +182,7 @@ struct EpisodeNotesView: View {
                     Text([episode.pubDate.episodeDate, episode.duration.spoken].filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(episode.summary.isEmpty ? "No episode notes." : episode.summary)
+                    Text(episode.summary.isEmpty ? AttributedString("No episode notes.") : episode.summary.linkified)
                         .font(.body)
                         .textSelection(.enabled)
                 }
