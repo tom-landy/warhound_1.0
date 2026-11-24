@@ -9,6 +9,7 @@ import SwiftUI
 @MainActor
 enum DemoData {
     static var isActive: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }
+    static var showsWelcome: Bool { isActive && UserDefaults.standard.bool(forKey: "demoWelcome") }
 
     static func seed(_ context: ModelContext) {
         let shows: [(String, String, [String])] = [

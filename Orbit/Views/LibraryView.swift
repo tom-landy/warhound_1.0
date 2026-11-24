@@ -71,7 +71,7 @@ private struct LibraryCell: View {
                     if unplayed > 0 {
                         Text(unplayed > 99 ? "99+" : "\(unplayed)")
                             .font(.caption2.weight(.bold).monospacedDigit())
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AccentTheme.onColor)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(.tint, in: Capsule())
@@ -86,5 +86,8 @@ private struct LibraryCell: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([podcast.title, podcast.author, unplayed > 0 ? "\(unplayed) unplayed" : ""].filter { !$0.isEmpty }.joined(separator: ", "))
+        .accessibilityAddTraits(.isButton)
     }
 }

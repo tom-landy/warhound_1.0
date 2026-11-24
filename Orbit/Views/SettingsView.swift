@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     @AppStorage(AccentTheme.matchIconKey) private var matchIcon = false
+    @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
     @AppStorage(DownloadManager.wifiOnlyKey) private var wifiOnly = true
     @AppStorage(DownloadManager.removePlayedKey) private var removePlayed = true
     @AppStorage(DownloadManager.keepPerShowKey) private var keepPerShow = 1
@@ -28,6 +29,17 @@ struct SettingsView: View {
                         .padding(.vertical, 8)
                         .listRowBackground(Color.clear)
                         .animation(.easeInOut(duration: 0.25), value: theme)
+                }
+
+                Section("Appearance") {
+                    HStack(spacing: 10) {
+                        ForEach(AppAppearance.allCases) { option in
+                            AppearanceCard(option: option, selected: option == appearance) {
+                                withAnimation(.easeInOut(duration: 0.2)) { appearance = option }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 6)
                 }
 
                 Section {

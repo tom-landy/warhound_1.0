@@ -17,6 +17,7 @@ final class Podcast {
     var playbackSpeed: Float?
     /// Seconds to skip at the start of each episode.
     var skipIntro: Int = 0
+    var websiteURL: URL?
 
     @Relationship(deleteRule: .cascade, inverse: \Episode.podcast)
     var episodes: [Episode] = []

@@ -3,7 +3,11 @@ import SwiftUI
 
 struct NowPlayingView: View {
     @Environment(AudioPlayer.self) private var player
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrubTime: TimeInterval = 0
+    @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 78
+    @ScaledMetric(relativeTo: .title) private var skipSize: CGFloat = 32
     @State private var showsNotes = false
     @State private var showsUpNext = DemoData.isActive && UserDefaults.standard.bool(forKey: "demoUpNext")
     @State private var showsChapters = DemoData.isActive && UserDefaults.standard.bool(forKey: "demoChapters")
@@ -14,9 +18,9 @@ struct NowPlayingView: View {
                 Spacer(minLength: 24)
 
                 ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 18)
-                    .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
-                    .scaleEffect(player.isPlaying ? 1 : 0.86)
-                    .animation(.spring(duration: 0.45, bounce: 0.25), value: player.isPlaying)
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.5 : 0.2), radius: 30, y: 14)
+                    .scaleEffect(player.isPlaying || reduceMotion ? 1 : 0.86)
+                    .animation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.25), value: player.isPlaying)
                     .padding(.horizontal, 32)
 
                 Spacer(minLength: 24)
@@ -60,6 +64,8 @@ struct NowPlayingView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 8)
+            .frame(maxWidth: 560) // iPad and wide screens
+            .frame(maxWidth: .infinity)
             .background { backdrop(episode) }
             .presentationDragIndicator(.visible)
             .sheet(isPresented: $showsNotes) {
@@ -90,6 +96,8 @@ struct NowPlayingView: View {
                     player.isScrubbing = false
                 }
             })
+            .accessibilityLabel("Position")
+            .accessibilityValue("\(displayedTime.spoken.isEmpty ? "0 min" : displayedTime.spoken) of \(player.duration.spoken)")
             HStack {
                 Text(displayedTime.clock)
                 Spacer()
@@ -97,6 +105,7 @@ struct NowPlayingView: View {
             }
             .font(.caption.monospacedDigit())
             .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
         }
     }
 
@@ -104,19 +113,19 @@ struct NowPlayingView: View {
         HStack {
             Spacer()
             Button { player.skip(by: -AudioPlayer.skipBack) } label: {
-                Image(systemName: "gobackward.15").font(.system(size: 32, weight: .medium))
+                Image(systemName: "gobackward.15").font(.system(size: min(skipSize, 48), weight: .medium))
             }
             .accessibilityLabel("Back 15 seconds")
             Spacer()
             Button { player.togglePlayPause() } label: {
                 ZStack {
-                    Circle().fill(.tint).frame(width: 78, height: 78)
+                    Circle().fill(.tint).frame(width: min(playSize, 110), height: min(playSize, 110))
                     if player.isBuffering {
-                        ProgressView().tint(.black)
+                        ProgressView().tint(AccentTheme.onColor)
                     } else {
                         Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundStyle(.black)
+                            .font(.system(size: min(playSize, 110) * 0.41, weight: .bold))
+                            .foregroundStyle(AccentTheme.onColor)
                             .offset(x: player.isPlaying ? 0 : 3)
                             .contentTransition(.symbolEffect(.replace))
                     }
@@ -125,7 +134,7 @@ struct NowPlayingView: View {
             .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
             Spacer()
             Button { player.skip(by: AudioPlayer.skipForward) } label: {
-                Image(systemName: "goforward.30").font(.system(size: 32, weight: .medium))
+                Image(systemName: "goforward.30").font(.system(size: min(skipSize, 48), weight: .medium))
             }
             .accessibilityLabel("Forward 30 seconds")
             Spacer()
@@ -192,7 +201,7 @@ struct NowPlayingView: View {
             .font(.subheadline.weight(.bold).monospacedDigit())
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.white.opacity(0.1), in: Capsule())
+            .background(Color.primary.opacity(0.1), in: Capsule())
         }
         .accessibilityLabel("Speed \(Self.speedLabel(player.speed))")
     }
@@ -224,18 +233,28 @@ struct NowPlayingView: View {
             .frame(minWidth: 44, minHeight: 44)
         }
         .accessibilityLabel("Sleep Timer")
+        .accessibilityValue(sleepDescription)
     }
 
     private func backdrop(_ episode: Episode) -> some View {
         ZStack {
-            Color.black
+            Color(.systemBackground)
             ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 0)
                 .scaledToFill()
                 .blur(radius: 80)
-                .opacity(0.55)
-            LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                .opacity(colorScheme == .dark ? 0.55 : 0.35)
+            LinearGradient(colors: [.clear, Color(.systemBackground).opacity(colorScheme == .dark ? 0.75 : 0.6)],
+                           startPoint: .top, endPoint: .bottom)
         }
         .ignoresSafeArea()
+    }
+
+    private var sleepDescription: String {
+        switch player.sleepTimer {
+        case .off: "Off"
+        case .endOfEpisode: "End of episode"
+        case .at(let date): "\(max(0, date.timeIntervalSinceNow).spoken) left"
+        }
     }
 
     static func speedLabel(_ s: Float) -> String {
@@ -279,6 +298,10 @@ struct EpisodeNotesView: View {
                 .padding()
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    ShareLink(item: episode.shareURL, subject: Text(episode.title),
+                              message: Text("\(episode.podcast?.title ?? "") – \(episode.title)"))
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }

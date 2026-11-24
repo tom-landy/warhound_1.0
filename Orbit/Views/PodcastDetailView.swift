@@ -61,6 +61,9 @@ struct PodcastDetailView: View {
                             downloads.episodePlayed(e)
                         }
                     } label: { Label("Mark All as Played", systemImage: "checkmark.circle") }
+                    ShareLink(item: podcast.websiteURL ?? podcast.feedURL, subject: Text(podcast.title)) {
+                        Label("Share Show", systemImage: "square.and.arrow.up")
+                    }
                     Button {
                         UIPasteboard.general.url = podcast.feedURL
                     } label: { Label("Copy Feed Link", systemImage: "link") }
@@ -98,6 +101,7 @@ struct PodcastDetailView: View {
                     try? context.save()
                     // Start you off with the latest episode(s), on Wi-Fi.
                     if podcast.isSubscribed { FeedService.keepLatestDownloaded(context: context) }
+                    SpotlightIndex.schedule(context: context)
                 }
             } label: {
                 Label(podcast.isSubscribed ? "Following" : "Follow",
@@ -107,8 +111,8 @@ struct PodcastDetailView: View {
                     .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
-            .tint(podcast.isSubscribed ? Color.white.opacity(0.15) : theme.color)
-            .foregroundStyle(podcast.isSubscribed ? Color.primary : Color.black)
+            .tint(podcast.isSubscribed ? Color.primary.opacity(0.12) : theme.color)
+            .foregroundStyle(podcast.isSubscribed ? Color.primary : AccentTheme.onColor)
             .contentTransition(.symbolEffect(.replace))
 
             if !podcast.summary.isEmpty {

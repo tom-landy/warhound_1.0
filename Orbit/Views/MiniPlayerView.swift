@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MiniPlayerView: View {
     @Environment(AudioPlayer.self) private var player
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         if let episode = player.episode {
@@ -41,7 +42,7 @@ struct MiniPlayerView: View {
             .background {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 12, y: 4)
             }
             .overlay(alignment: .bottom) {
                 GeometryReader { geo in
@@ -55,8 +56,14 @@ struct MiniPlayerView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture { player.showsFullPlayer = true }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(player.isPlaying ? "Playing" : "Paused"): \(episode.title), \(episode.podcast?.title ?? "")")
             .accessibilityAddTraits(.isButton)
             .accessibilityHint("Opens the player")
+            .accessibilityAction { player.showsFullPlayer = true }
+            .accessibilityAction(named: player.isPlaying ? "Pause" : "Play") { player.togglePlayPause() }
+            .accessibilityAction(named: "Forward 30 Seconds") { player.skip(by: AudioPlayer.skipForward) }
+            .accessibilityAction(named: "Back 15 Seconds") { player.skip(by: -AudioPlayer.skipBack) }
         }
     }
 

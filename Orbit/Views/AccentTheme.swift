@@ -12,7 +12,32 @@ enum AccentTheme: String, CaseIterable, Identifiable {
 
     var name: String { rawValue.capitalized }
 
-    var color: Color { Color(hex: hex.base) }
+    /// The accent, adjusted per appearance: the bright shade on dark backgrounds,
+    /// a darker shade on light ones (4.6:1 contrast on white or better).
+    var color: Color {
+        let dark = hex.base, light = lightHex
+        return Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) })
+    }
+
+    /// Text and icons placed on the accent: black on the bright shade, white on the darker one.
+    static var onColor: Color {
+        Color(UIColor { $0.userInterfaceStyle == .dark ? .black : .white })
+    }
+
+    private var lightHex: UInt32 {
+        switch self {
+        case .orange: 0xCD4800
+        case .ember: 0xDA372C
+        case .gold: 0xA26800
+        case .lime: 0x468300
+        case .mint: 0x008653
+        case .teal: 0x008091
+        case .blue: 0x3270E0
+        case .violet: 0x845AD9
+        case .pink: 0xCD3B7B
+        case .silver: 0x71747A
+        }
+    }
     var top: Color { Color(hex: hex.top) }
     var bottom: Color { Color(hex: hex.bottom) }
     var gradient: LinearGradient {
@@ -48,12 +73,46 @@ enum AccentTheme: String, CaseIterable, Identifiable {
     }
 }
 
+extension UIColor {
+    convenience init(hex: UInt32) {
+        self.init(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                  blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+}
+
 extension Color {
     init(hex: UInt32) {
         self.init(.sRGB,
                   red: Double((hex >> 16) & 0xFF) / 255,
                   green: Double((hex >> 8) & 0xFF) / 255,
                   blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+/// System, Light or Dark. Chosen at first launch and in Settings.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    static let storageKey = "appearance"
+    static let chosenKey = "appearanceChosen"
+
+    var id: String { rawValue }
+    var name: String { rawValue.capitalized }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .system: "circle.lefthalf.filled"
+        case .light: "sun.max"
+        case .dark: "moon"
+        }
     }
 }
 

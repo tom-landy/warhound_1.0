@@ -60,6 +60,7 @@ enum FeedService {
         }
         DownloadManager.shared.cleanUp()
         keepLatestDownloaded(context: context)
+        SpotlightIndex.schedule(context: context)
     }
 
     private static func find(_ feedURL: URL, context: ModelContext) throws -> Podcast? {
@@ -79,10 +80,12 @@ enum FeedService {
         var added: [Episode] = []
         let existing = Dictionary(podcast.episodes.map { ($0.guid, $0) }, uniquingKeysWith: { a, _ in a })
         for item in parsed.items {
-            if let episode = existing[item.guid], episode.chaptersURL == nil, let url = item.chaptersURL {
+            guard let episode = existing[item.guid] else { continue }
+            if episode.chaptersURL == nil, let url = item.chaptersURL {
                 episode.chaptersURL = url
                 episode.chaptersChecked = false
             }
+            if episode.webURL == nil { episode.webURL = item.link }
         }
         let known = Set(existing.keys)
         let prefix = podcast.feedURL.absoluteString + "#"
@@ -92,10 +95,12 @@ enum FeedService {
                                   summary: item.summary.plainText, pubDate: item.pubDate ?? .distantPast,
                                   duration: item.duration, audioURL: audio, artworkURL: item.artworkURL)
             episode.chaptersURL = item.chaptersURL
+            episode.webURL = item.link
             context.insert(episode)
             episode.podcast = podcast
             added.append(episode)
         }
+        if let site = parsed.link { podcast.websiteURL = site }
         podcast.lastRefreshed = .now
         return added
     }

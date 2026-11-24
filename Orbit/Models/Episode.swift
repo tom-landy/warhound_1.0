@@ -26,6 +26,8 @@ final class Episode {
     var chaptersURL: URL?
     var chaptersData: Data?
     var chaptersChecked: Bool = false
+    /// The episode's web page, for sharing.
+    var webURL: URL?
     var podcast: Podcast?
 
     init(key: String, guid: String, title: String, summary: String, pubDate: Date,
@@ -54,6 +56,9 @@ final class Episode {
     var isDownloaded: Bool { localFileName != nil }
 
     var isQueued: Bool { queueOrder != nil }
+
+    /// What to share: the episode page, else the show's site, else the audio file.
+    var shareURL: URL { webURL ?? podcast?.websiteURL ?? audioURL }
 
     var chapters: [Chapter] {
         guard let chaptersData else { return [] }

@@ -123,7 +123,7 @@ struct ImportView: View {
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
-                .foregroundStyle(.black)
+                .foregroundStyle(AccentTheme.onColor)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
                 if let error = importer.error {

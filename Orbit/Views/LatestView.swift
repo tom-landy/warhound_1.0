@@ -88,7 +88,7 @@ struct EmptyLibraryView: View {
         } actions: {
             Button("Find Podcasts", action: findPodcasts)
                 .buttonStyle(.borderedProminent)
-                .foregroundStyle(.black)
+                .foregroundStyle(AccentTheme.onColor)
             Button("Import from Another App") { showsImport = true }
         }
         .sheet(isPresented: $showsImport) { ImportView() }

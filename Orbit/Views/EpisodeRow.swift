@@ -40,6 +40,24 @@ struct EpisodeRow: View {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture { showsNotes = true }
+        // VoiceOver: one element per episode; double-tap plays, the rest are actions.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { player.play(episode) }
+        .accessibilityAction(named: player.isCurrent(episode) && player.isPlaying ? "Pause" : "Play") { player.play(episode) }
+        .accessibilityAction(named: "Episode Notes") { showsNotes = true }
+        .accessibilityAction(named: episode.isQueued ? "Remove from Up Next" : "Add to Up Next") {
+            if episode.isQueued { player.removeFromQueue(episode) } else { player.addToQueue(episode) }
+        }
+        .accessibilityAction(named: "Play Next") { player.playNext(episode) }
+        .accessibilityAction(named: episode.isDownloaded ? "Remove Download" : "Download") {
+            if episode.isDownloaded { downloads.remove(episode) } else { downloads.download(episode) }
+        }
+        .accessibilityAction(named: episode.isPlayed ? "Mark as Unplayed" : "Mark as Played") {
+            episode.isPlayed.toggle()
+            if episode.isPlayed { episode.playbackPosition = 0; downloads.episodePlayed(episode) }
+        }
         .sheet(isPresented: $showsNotes) { EpisodeNotesView(episode: episode) }
         .contextMenu {
             if !player.isCurrent(episode) {
@@ -55,6 +73,10 @@ struct EpisodeRow: View {
                         Label("Add to Up Next", systemImage: "text.line.last.and.arrowtriangle.forward")
                     }
                 }
+            }
+            ShareLink(item: episode.shareURL, subject: Text(episode.title),
+                      message: Text("\(episode.podcast?.title ?? "") – \(episode.title)")) {
+                Label("Share Episode", systemImage: "square.and.arrow.up")
             }
             Divider()
             Button {
@@ -110,6 +132,23 @@ struct EpisodeRow: View {
         }
     }
 
+    private var accessibilityText: String {
+        var parts = [episode.title]
+        if showsPodcast, let show = episode.podcast?.title { parts.append(show) }
+        parts.append(episode.pubDate.episodeDate)
+        if player.isCurrent(episode) { parts.append(player.isPlaying ? "Playing" : "Paused") }
+        if episode.isPlayed {
+            parts.append("Played")
+        } else if episode.isInProgress {
+            parts.append("\(episode.remaining.spoken) left")
+        } else if episode.duration > 0 {
+            parts.append(episode.duration.spoken)
+        }
+        if episode.isDownloaded { parts.append("Downloaded") }
+        if episode.isQueued { parts.append("In Up Next") }
+        return parts.joined(separator: ", ")
+    }
+
     private var header: String {
         let date = (episode.isQueued ? "UP NEXT · " : "") + episode.pubDate.episodeDate.uppercased()
         guard showsPodcast, let title = episode.podcast?.title else { return date }
@@ -143,7 +182,7 @@ struct PlayCapsule: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .foregroundStyle(current ? Color.black : theme.color)
+            .foregroundStyle(current ? AccentTheme.onColor : theme.color)
             .background(current ? theme.color : theme.color.opacity(0.15), in: Capsule())
         }
         .buttonStyle(.plain)

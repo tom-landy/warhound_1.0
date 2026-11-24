@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Xcode version
@@ -71,7 +71,7 @@ jobs:
           /tmp/feedcheck tools/feedcheck/overcast-sample.opml
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
-        timeout-minutes: 18
+        timeout-minutes: 28
         run: |
           set -x
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -104,11 +104,36 @@ jobs:
           NAME=10-chapters shoot -demoTab latest -demoPlayer YES -demoChapters YES
           NAME=11-stats shoot -demoTab library -demoStats YES
           NAME=12-widgets shoot -demoTab latest -demoWidgets YES
+          NAME=13-welcome shoot -demoTab latest -demoWelcome YES -appearance system
+          NAME=14-latest-light shoot -demoTab latest -appearance light
+          NAME=15-player-light shoot -demoTab latest -demoPlayer YES -appearance light
+          NAME=16-stats-light shoot -demoTab library -demoStats YES -appearance light
+          NAME=17-settings-light shoot -demoTab latest -demoSettings YES -appearance light -accentTheme teal
           xcrun simctl terminate "$UDID" com.tomlandy.Orbit || true
           xcrun simctl launch "$UDID" com.tomlandy.Orbit
           sleep 5
           xcrun simctl io "$UDID" screenshot 0-empty.png
           sips --resampleWidth 590 *.png >/dev/null
+          # iPad
+          IPAD=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          p=[x for r in d if "iOS" in r for x in d[r] if x["name"].startswith("iPad Pro") or x["name"].startswith("iPad Air")]
+          print(p[-1]["udid"] if p else "")')
+          if [ -n "$IPAD" ]; then
+            xcrun simctl bootstatus "$IPAD" -b
+            xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryLevel 100
+            xcrun simctl install "$IPAD" ../../build/Debug-iphonesimulator/Orbit.app
+            xcrun simctl launch "$IPAD" com.tomlandy.Orbit -demo -demoTab library
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-1-library.png
+            xcrun simctl terminate "$IPAD" com.tomlandy.Orbit || true
+            xcrun simctl launch "$IPAD" com.tomlandy.Orbit -demo -demoTab latest -demoPlayer YES -appearance light
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-2-player-light.png
+            xcrun simctl shutdown "$IPAD" || true
+            sips --resampleWidth 900 ipad-*.png >/dev/null
+          fi
           # Watch: sample data, list page and now playing page
           WATCH=$(xcrun simctl list devices available -j | python3 -c '
           import json,sys

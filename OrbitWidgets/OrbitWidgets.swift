@@ -48,9 +48,11 @@ struct NowPlayingWidget: Widget {
 private struct NowPlayingEntryView: View {
     let entry: OrbitEntry
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NowPlayingWidgetView(snapshot: entry.snapshot, family: family)
+            .environment(\.colorScheme, family.isAccessory ? colorScheme : .dark)
             .containerBackground(for: .widget) { WidgetBackground() }
     }
 }
@@ -69,9 +71,11 @@ struct UpNextWidget: Widget {
 private struct UpNextEntryView: View {
     let entry: OrbitEntry
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         UpNextWidgetView(snapshot: entry.snapshot, family: family)
+            .environment(\.colorScheme, family.isAccessory ? colorScheme : .dark)
             .containerBackground(for: .widget) { WidgetBackground() }
     }
 }
@@ -92,5 +96,11 @@ struct PlayPauseControl: ControlWidget {
         }
         .displayName("Play/Pause")
         .description("Plays or pauses the current episode in Orbit.")
+    }
+}
+
+private extension WidgetFamily {
+    var isAccessory: Bool {
+        self == .accessoryCircular || self == .accessoryRectangular || self == .accessoryInline
     }
 }

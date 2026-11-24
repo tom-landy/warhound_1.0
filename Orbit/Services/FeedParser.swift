@@ -1,6 +1,7 @@
 import Foundation
 
 struct ParsedFeed: Sendable {
+    var link: URL?
     var title = ""
     var author = ""
     var summary = ""
@@ -17,6 +18,7 @@ struct ParsedEpisode: Sendable {
     var audioURL: URL?
     var artworkURL: URL?
     var chaptersURL: URL?
+    var link: URL?
 }
 
 enum FeedError: LocalizedError {
@@ -97,6 +99,7 @@ final class FeedParser: NSObject, XMLParserDelegate {
         if var current = item {
             switch name {
             case "title" where parent == "item": current.title = value
+            case "link" where parent == "item": current.link = Self.url(value)
             case "guid": current.guid = value
             case "pubDate": current.pubDate = Self.date(value)
             case "itunes:duration": current.duration = Self.duration(value)
@@ -120,6 +123,7 @@ final class FeedParser: NSObject, XMLParserDelegate {
 
         switch name {
         case "title" where parent == "channel": feed.title = value
+        case "link" where parent == "channel": feed.link = Self.url(value)
         case "itunes:author" where parent == "channel": feed.author = value
         case "description" where parent == "channel": feed.summary = value
         case "itunes:summary" where parent == "channel":
