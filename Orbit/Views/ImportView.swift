@@ -110,7 +110,7 @@ struct ImportView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Bring Your Shows Over")
                         .font(.title3.bold())
-                    Text("Export your subscriptions from your current app as an OPML file, then choose it here. You can also open the file straight into Orbit from the share sheet or Files.")
+                    Text("Export the shows you follow from your current app as an OPML file, then choose it here. You can also open the file straight into Orbit from the share sheet or Files.")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)

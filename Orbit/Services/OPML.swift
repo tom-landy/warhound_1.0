@@ -7,7 +7,7 @@ struct OPMLFeed: Hashable, Sendable {
     let url: URL
 }
 
-/// OPML is the subscription list format every podcast app exports.
+/// OPML is the list-of-shows format every podcast app exports.
 enum OPML {
     static func parse(_ data: Data) throws -> [OPMLFeed] {
         let delegate = OPMLParser()

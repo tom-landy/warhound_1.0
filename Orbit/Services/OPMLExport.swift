@@ -20,7 +20,7 @@ extension OPML {
         return """
         <?xml version="1.0" encoding="UTF-8"?>
         <opml version="2.0">
-          <head><title>Orbit subscriptions</title></head>
+          <head><title>Shows I follow in Orbit</title></head>
           <body>
         \(lines.joined(separator: "\n"))
           </body>
@@ -31,7 +31,7 @@ extension OPML {
 
     /// Writes the export to a temporary file for the share sheet.
     static func exportFile(_ podcasts: [Podcast]) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Orbit Subscriptions.opml")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Orbit Shows.opml")
         do {
             try export(podcasts).write(to: url, atomically: true, encoding: .utf8)
             return url
