@@ -52,10 +52,24 @@ enum WidgetSync {
         guard let destination = WidgetStore.artworkURL(name) else { return nil }
         if FileManager.default.fileExists(atPath: destination.path) { return name }
         guard let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) else { return nil }
-        let size = CGSize(width: 240, height: 240)
-        let small = UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        let small = image.squareFitted(to: CGSize(width: 240, height: 240))
         try? FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? small.jpegData(compressionQuality: 0.8)?.write(to: destination)
         return name
+    }
+}
+
+extension UIImage {
+    /// A square copy with the whole image fitted inside (never stretched), on a dark background.
+    func squareFitted(to size: CGSize) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { context in
+            UIColor(white: 0.1, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            guard self.size.width > 0, self.size.height > 0 else { return }
+            let scale = min(size.width / self.size.width, size.height / self.size.height)
+            let fitted = CGSize(width: self.size.width * scale, height: self.size.height * scale)
+            draw(in: CGRect(x: (size.width - fitted.width) / 2, y: (size.height - fitted.height) / 2,
+                            width: fitted.width, height: fitted.height))
+        }
     }
 }

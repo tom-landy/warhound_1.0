@@ -214,8 +214,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         if let cached = Self.artwork.object(forKey: url as NSURL) { apply(cached); return }
         Task {
             guard let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) else { return }
-            let size = CPListItem.maximumImageSize
-            let scaled = UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+            let scaled = image.squareFitted(to: CPListItem.maximumImageSize)
             Self.artwork.setObject(scaled, forKey: url as NSURL)
             apply(scaled)
         }
