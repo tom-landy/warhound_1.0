@@ -6,6 +6,8 @@ struct SettingsView: View {
     @AppStorage(AccentTheme.matchIconKey) private var matchIcon = false
     @AppStorage(DownloadManager.wifiOnlyKey) private var wifiOnly = true
     @AppStorage(DownloadManager.removePlayedKey) private var removePlayed = true
+    @AppStorage(DownloadManager.keepPerShowKey) private var keepPerShow = 1
+    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(DownloadManager.self) private var downloads
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }, sort: \Podcast.title) private var subscriptions: [Podcast]
@@ -45,7 +47,10 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("New episodes on Wi-Fi only", isOn: $wifiOnly)
+                    Picker("Keep downloaded per show", selection: $keepPerShow) {
+                        ForEach([1, 2, 3, 5], id: \.self) { Text("\($0) latest").tag($0) }
+                    }
+                    Toggle("Automatic downloads on Wi-Fi only", isOn: $wifiOnly)
                     Toggle("Remove after playing", isOn: $removePlayed)
                     NavigationLink {
                         DownloadsView()
@@ -55,7 +60,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Downloads")
                 } footer: {
-                    Text("Episodes you download by hand always go, on any connection. Turn off a show's automatic downloads from the ⋯ menu on its page.")
+                    Text("Orbit keeps the newest unplayed episodes of every show you follow downloaded. Episodes you download by hand go on any connection. Turn this off for one show from the ⋯ menu on its page.")
                 }
 
                 Section("Your shows") {
@@ -83,6 +88,7 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showsImport) { ImportView() }
+            .onChange(of: keepPerShow) { FeedService.keepLatestDownloaded(context: context) }
             .task(id: subscriptions.count) { exportURL = OPML.exportFile(subscriptions) }
             .onChange(of: theme) { _, new in new.applyIcon(matchIcon) }
             .onChange(of: matchIcon) { _, new in theme.applyIcon(new) }

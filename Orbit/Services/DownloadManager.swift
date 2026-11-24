@@ -11,6 +11,7 @@ final class DownloadManager: NSObject {
     static let sessionID = "com.tomlandy.Orbit.downloads"
     static let wifiOnlyKey = "downloadWifiOnly"
     static let removePlayedKey = "removePlayedDownloads"
+    static let keepPerShowKey = "downloadsPerShow"
     static let maxRetries = 8
 
     /// Files live in Application Support, excluded from iCloud backup.
@@ -37,6 +38,8 @@ final class DownloadManager: NSObject {
     /// Episode key -> fraction done, or -1 when waiting or the size is unknown.
     private(set) var active: [String: Double] = [:]
     private(set) var failed: Set<String> = []
+    /// Automatic downloads held back until Wi-Fi.
+    private(set) var wifiOnly: Set<String> = []
 
     @ObservationIgnored private var tasks: [String: URLSessionDownloadTask] = [:]
     @ObservationIgnored private var retries: [String: Int] = [:]
@@ -80,6 +83,9 @@ final class DownloadManager: NSObject {
         if automatic && UserDefaults.standard.bool(forKey: Self.wifiOnlyKey) {
             request.allowsCellularAccess = false
             request.allowsExpensiveNetworkAccess = false
+            wifiOnly.insert(episode.key)
+        } else {
+            wifiOnly.remove(episode.key)
         }
         retries[episode.key] = 0
         start(session.downloadTask(with: request), key: episode.key)
@@ -88,6 +94,12 @@ final class DownloadManager: NSObject {
     func cancel(_ episode: Episode) {
         tasks[episode.key]?.cancel()
         clear(episode.key)
+    }
+
+    /// Restarts a Wi-Fi-only download so it goes over mobile data now.
+    func downloadNow(_ episode: Episode) {
+        cancel(episode)
+        download(episode)
     }
 
     func remove(_ episode: Episode) {
@@ -152,6 +164,7 @@ final class DownloadManager: NSObject {
     }
 
     private func clear(_ key: String) {
+        wifiOnly.remove(key)
         tasks[key] = nil
         active[key] = nil
         retries[key] = nil
@@ -210,8 +223,10 @@ final class DownloadManager: NSObject {
             return
         }
         let saved = retries[key]
+        let heldForWifi = wifiOnly.contains(key)
         start(next, key: key)
         retries[key] = saved
+        if heldForWifi { wifiOnly.insert(key) }
     }
 }
 

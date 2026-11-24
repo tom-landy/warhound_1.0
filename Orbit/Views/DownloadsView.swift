@@ -32,6 +32,13 @@ struct DownloadsView: View {
                                 Text(episode.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                                 if case .downloading(let f) = downloads.state(episode), let f {
                                     ProgressView(value: f)
+                                } else if downloads.wifiOnly.contains(episode.key) {
+                                    HStack {
+                                        Text("Waiting for Wi-Fi").font(.caption).foregroundStyle(.secondary)
+                                        Button("Use mobile data") { downloads.downloadNow(episode) }
+                                            .font(.caption.weight(.semibold))
+                                            .buttonStyle(.borderless)
+                                    }
                                 } else {
                                     Text("Waiting for connection").font(.caption).foregroundStyle(.secondary)
                                 }

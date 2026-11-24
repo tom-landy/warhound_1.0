@@ -17,7 +17,26 @@ enum FeedService {
         context.insert(podcast)
         merge(parsed, into: podcast, context: context)
         try context.save()
+        await fillMissingArtwork(podcast)
         return podcast
+    }
+
+    private static func fillMissingArtwork(_ podcast: Podcast) async {
+        guard podcast.artworkURL == nil, let art = await PodcastSearch.artworkFallback(for: podcast.title) else { return }
+        podcast.artworkURL = art
+        try? podcast.modelContext?.save()
+    }
+
+    /// Downloads each followed show's newest unplayed episodes, up to the per-show setting.
+    /// Runs after every refresh, so it also catches shows that were just imported.
+    static func keepLatestDownloaded(context: ModelContext) {
+        let perShow = max(1, UserDefaults.standard.integer(forKey: DownloadManager.keepPerShowKey))
+        let descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed && $0.autoDownload })
+        for podcast in (try? context.fetch(descriptor)) ?? [] {
+            for episode in podcast.sortedEpisodes.lazy.filter({ !$0.isPlayed }).prefix(perShow) where !episode.isDownloaded {
+                DownloadManager.shared.download(episode, automatic: true)
+            }
+        }
     }
 
     static func refresh(_ podcast: Podcast, context: ModelContext) async throws {
@@ -26,14 +45,9 @@ enum FeedService {
         if !parsed.author.isEmpty { podcast.author = parsed.author }
         if !parsed.summary.isEmpty { podcast.summary = parsed.summary.plainText }
         if let art = parsed.artworkURL { podcast.artworkURL = art }
-        let added = merge(parsed, into: podcast, context: context)
+        merge(parsed, into: podcast, context: context)
         try context.save()
-        if podcast.isSubscribed && podcast.autoDownload {
-            // Cap it, so a feed that suddenly republishes its back catalogue doesn't fill the phone.
-            for episode in added.sorted(by: { $0.pubDate > $1.pubDate }).prefix(3) {
-                DownloadManager.shared.download(episode, automatic: true)
-            }
-        }
+        await fillMissingArtwork(podcast)
     }
 
     static func refreshAll(context: ModelContext) async {
@@ -45,6 +59,7 @@ enum FeedService {
             }
         }
         DownloadManager.shared.cleanUp()
+        keepLatestDownloaded(context: context)
     }
 
     private static func find(_ feedURL: URL, context: ModelContext) throws -> Podcast? {

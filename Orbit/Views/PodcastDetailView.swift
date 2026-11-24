@@ -41,7 +41,7 @@ struct PodcastDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Toggle(isOn: $podcast.autoDownload) {
-                        Label("Download new episodes", systemImage: "arrow.down.circle")
+                        Label("Keep latest downloaded", systemImage: "arrow.down.circle")
                     }
                     if podcast.episodes.contains(where: \.isDownloaded) {
                         Button(role: .destructive) {
@@ -91,10 +91,8 @@ struct PodcastDetailView: View {
                     podcast.isSubscribed.toggle()
                     podcast.subscribedAt = podcast.isSubscribed ? .now : nil
                     try? context.save()
-                    // Start you off with the latest episode, on Wi-Fi.
-                    if podcast.isSubscribed && podcast.autoDownload, let latest = podcast.sortedEpisodes.first {
-                        downloads.download(latest, automatic: true)
-                    }
+                    // Start you off with the latest episode(s), on Wi-Fi.
+                    if podcast.isSubscribed { FeedService.keepLatestDownloaded(context: context) }
                 }
             } label: {
                 Label(podcast.isSubscribed ? "Following" : "Follow",

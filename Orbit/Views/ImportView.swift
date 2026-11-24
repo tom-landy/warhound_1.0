@@ -60,6 +60,7 @@ final class Importer {
             }
         }
         try? context.save()
+        FeedService.keepLatestDownloaded(context: context)
         phase = .done
     }
 }
@@ -150,7 +151,7 @@ struct ImportView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Text("Keep Orbit open while this runs. It only fetches each show's episode list; nothing downloads.")
+            Text("Keep Orbit open while this runs. Afterwards the latest episode of each show downloads on Wi-Fi.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

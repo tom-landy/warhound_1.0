@@ -30,6 +30,7 @@ final class FeedParser: NSObject, XMLParserDelegate {
     private var stack: [String] = []
     private var text = ""
     private var sawChannel = false
+    private var firstItemArtwork: URL?
 
     static func parse(_ data: Data) throws -> ParsedFeed {
         let delegate = FeedParser()
@@ -39,6 +40,8 @@ final class FeedParser: NSObject, XMLParserDelegate {
         guard parser.parse(), delegate.sawChannel else {
             throw parser.parserError ?? FeedError.notAFeed
         }
+        // Some private feeds only carry artwork on episodes.
+        if delegate.feed.artworkURL == nil { delegate.feed.artworkURL = delegate.firstItemArtwork }
         return delegate.feed
     }
 
@@ -53,12 +56,25 @@ final class FeedParser: NSObject, XMLParserDelegate {
             item = ParsedEpisode()
         case "enclosure":
             if let url = attributes["url"].flatMap(Self.url) { item?.audioURL = url }
-        case "itunes:image":
-            if let url = attributes["href"].flatMap(Self.url) {
-                if item != nil { item?.artworkURL = url } else { feed.artworkURL = url }
-            }
+        case "itunes:image", "googleplay:image":
+            // iTunes art wins over anything else found.
+            if let url = (attributes["href"] ?? attributes["url"]).flatMap(Self.url) { setArtwork(url, preferred: name == "itunes:image") }
+        case "media:thumbnail":
+            if let url = attributes["url"].flatMap(Self.url) { setArtwork(url, preferred: false) }
+        case "media:content":
+            let isImage = attributes["medium"] == "image" || (attributes["type"] ?? "").hasPrefix("image/")
+            if isImage, let url = attributes["url"].flatMap(Self.url) { setArtwork(url, preferred: false) }
         default:
             break
+        }
+    }
+
+    private func setArtwork(_ url: URL, preferred: Bool) {
+        if item != nil {
+            if preferred || item?.artworkURL == nil { item?.artworkURL = url }
+            if firstItemArtwork == nil { firstItemArtwork = url }
+        } else if preferred || feed.artworkURL == nil {
+            feed.artworkURL = url
         }
     }
 
@@ -81,6 +97,9 @@ final class FeedParser: NSObject, XMLParserDelegate {
             case "guid": current.guid = value
             case "pubDate": current.pubDate = Self.date(value)
             case "itunes:duration": current.duration = Self.duration(value)
+            case "itunes:image" where current.artworkURL == nil:
+                // A few feeds put the URL in the element text rather than href.
+                if let url = Self.url(value), url.scheme != nil { current.artworkURL = url }
             case "description", "itunes:summary", "content:encoded":
                 if current.summary.isEmpty || name == "description" { current.summary = value }
             case "item":
@@ -104,6 +123,8 @@ final class FeedParser: NSObject, XMLParserDelegate {
             if feed.summary.isEmpty { feed.summary = value }
         case "url" where parent == "image":
             if feed.artworkURL == nil { feed.artworkURL = Self.url(value) }
+        case "itunes:image" where feed.artworkURL == nil:
+            if let url = Self.url(value), url.scheme != nil { feed.artworkURL = url }
         default: break
         }
     }

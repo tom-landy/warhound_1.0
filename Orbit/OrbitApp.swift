@@ -14,6 +14,7 @@ struct OrbitApp: App {
         UserDefaults.standard.register(defaults: [
             DownloadManager.wifiOnlyKey: true,
             DownloadManager.removePlayedKey: true,
+            DownloadManager.keepPerShowKey: 1,
         ])
         let demo = DemoData.isActive
         let config = ModelConfiguration(isStoredInMemoryOnly: demo)

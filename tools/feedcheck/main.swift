@@ -44,6 +44,9 @@ for feed in checkable {
         if dupGuids > 0 { problems.append("\(dupGuids) duplicate guids") }
         if emptyTitles > 0 { problems.append("\(emptyTitles) untitled") }
         if parsed.artworkURL == nil { problems.append("no artwork") }
+        if parsed.artworkURL?.scheme == "http" { problems.append("artwork over http") }
+        let httpAudio = items.filter { $0.audioURL?.scheme == "http" }.count
+        if httpAudio > 0 { problems.append("\(httpAudio) episodes with http audio") }
         if parsed.title.isEmpty { problems.append("no title") }
         let flag = problems.isEmpty ? "OK  " : "WARN"
         print("\(flag) \(feed.title.prefix(44).padding(toLength: 44, withPad: " ", startingAt: 0)) HTTP \(status) \(data.count / 1024)KB \(items.count) eps \(ms)ms")

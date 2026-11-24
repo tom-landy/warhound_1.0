@@ -1,7 +1,9 @@
 name: iOS build
 
 on:
+  # Branch work builds through its pull request; pushing to main builds main.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
