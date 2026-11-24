@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Xcode version
@@ -37,6 +37,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Debug-iphonesimulator/Orbit.app
+      - name: Build watch app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Orbit.xcodeproj \
+            -target OrbitWatch \
+            -sdk watchsimulator \
+            -configuration Debug \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
+          test -d "build/Debug-watchsimulator/Orbit Watch.app"
       - name: Feed parser check
         continue-on-error: true
         timeout-minutes: 5
@@ -45,7 +57,7 @@ jobs:
           /tmp/feedcheck tools/feedcheck/overcast-sample.opml
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
-        timeout-minutes: 12
+        timeout-minutes: 18
         run: |
           set -x
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -79,6 +91,23 @@ jobs:
           sleep 5
           xcrun simctl io "$UDID" screenshot 0-empty.png
           sips --resampleWidth 590 *.png >/dev/null
+          # Watch: sample data, list page and now playing page
+          WATCH=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          w=[x for r in d if "watchOS" in r for x in d[r] if "Apple Watch" in x["name"]]
+          print(w[-1]["udid"] if w else "")')
+          if [ -n "$WATCH" ]; then
+            xcrun simctl bootstatus "$WATCH" -b
+            xcrun simctl install "$WATCH" "../../build/Debug-watchsimulator/Orbit Watch.app"
+            xcrun simctl launch "$WATCH" com.tomlandy.Orbit.watchkitapp -demo -demoPage 1
+            sleep 8
+            xcrun simctl io "$WATCH" screenshot watch-1-latest.png
+            xcrun simctl terminate "$WATCH" com.tomlandy.Orbit.watchkitapp || true
+            xcrun simctl launch "$WATCH" com.tomlandy.Orbit.watchkitapp -demo -demoPage 2
+            sleep 6
+            xcrun simctl io "$WATCH" screenshot watch-2-downloaded.png
+          fi
       - name: Commit screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
         run: |

@@ -7,6 +7,8 @@ import UIKit
 @MainActor
 @Observable
 final class AudioPlayer {
+    /// One player for the phone UI, CarPlay and the watch.
+    static let shared = AudioPlayer()
     static let speeds: [Float] = [0.8, 1.0, 1.2, 1.5, 1.75, 2.0]
     static let skipBack: TimeInterval = 15
     static let skipForward: TimeInterval = 30
@@ -49,6 +51,7 @@ final class AudioPlayer {
                 self?.isPlaying = status != .paused
                 self?.isBuffering = status == .waitingToPlayAtSpecifiedRate
                 self?.updateNowPlaying()
+                self?.announce()
             }
         })
     }
@@ -94,6 +97,13 @@ final class AudioPlayer {
             player.playImmediately(atRate: speed)
         }
         updateNowPlaying()
+        announce()
+    }
+
+    /// Tells CarPlay and the watch that what's playing changed.
+    private func announce() {
+        NotificationCenter.default.post(name: .orbitPlaybackChanged, object: nil)
+        WatchSync.shared.schedulePush()
     }
 
     func togglePlayPause() {
@@ -224,4 +234,8 @@ final class AudioPlayer {
             self.updateNowPlaying()
         }
     }
+}
+
+extension Notification.Name {
+    static let orbitPlaybackChanged = Notification.Name("orbitPlaybackChanged")
 }

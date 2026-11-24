@@ -6,7 +6,7 @@ import UIKit
 struct OrbitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
-    @State private var player = AudioPlayer()
+    @State private var player = AudioPlayer.shared
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     private let container: ModelContainer
 
@@ -22,7 +22,9 @@ struct OrbitApp: App {
         } catch {
             fatalError("Could not open the library: \(error)")
         }
+        AppEnvironment.container = container
         DownloadManager.shared.configure(context: container.mainContext)
+        WatchSync.shared.start(context: container.mainContext)
         if demo {
             DemoData.seed(container.mainContext)
         } else {
@@ -57,4 +59,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             DownloadManager.backgroundCompletion = completionHandler
         }
     }
+}
+
+/// Shared storage for parts of the app that live outside the SwiftUI scene (CarPlay).
+@MainActor
+enum AppEnvironment {
+    static var container: ModelContainer!
 }
