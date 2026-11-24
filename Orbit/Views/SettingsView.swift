@@ -110,10 +110,7 @@ struct SettingsView: View {
     }
 
     private static var version: String {
-        let info = Bundle.main.infoDictionary
-        let v = info?["CFBundleShortVersionString"] as? String ?? "?"
-        let b = info?["CFBundleVersion"] as? String ?? "?"
-        return "\(v) (\(b))"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
     }
 }
 
