@@ -184,7 +184,7 @@ private struct NowPlayingCard: View {
                 if part != .artwork {
                 ScrubberView()
                 HStack {
-                    if !large { SpeedMenuButton() }
+                    if !large { SpeedMenuButton().foregroundStyle(.secondary) }
                     Spacer()
                     Button { player.skip(by: -AudioPlayer.skipBack) } label: {
                         Image(systemName: "gobackward.15").font(.title2).frame(width: 44, height: 44)
@@ -206,7 +206,7 @@ private struct NowPlayingCard: View {
                     }
                     .accessibilityLabel("Forward 30 Seconds")
                     Spacer()
-                    if !large { SleepMenuButton() }
+                    if !large { SleepMenuButton().foregroundStyle(.secondary) }
                 }
                 .buttonStyle(.plain)
                 if large {
@@ -217,6 +217,7 @@ private struct NowPlayingCard: View {
                         Spacer()
                         upNextButton
                     }
+                    .foregroundStyle(.secondary) // grey like the iPhone player; the sleep icon turns accent when set
                 }
                 }
             } else if part != .controls {

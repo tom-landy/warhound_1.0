@@ -150,7 +150,7 @@ jobs:
             xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryLevel 100
             xcrun simctl install "$IPAD" ../../build/Debug-iphonesimulator/Orbit.app
             # Portrait first (simulator default), then rotate via the Simulator's device orientation setting
-            xcrun simctl launch "$IPAD" com.warhound.orbit -demo
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -appearance dark
             sleep 8
             xcrun simctl io "$IPAD" screenshot ipad-1-portrait-dark.png
             xcrun simctl terminate "$IPAD" com.warhound.orbit || true
