@@ -27,7 +27,7 @@ If Archive is greyed out: the device menu must be *Any iOS Device*, not a simula
 | Field | Value |
 |---|---|
 | Platform | iOS |
-| Name | **Orbit** (if taken: **Orbit Podcasts**) |
+| Name | **Orbit - Podcast Player** (the Home Screen still says Orbit) |
 | Primary language | English (U.K.) |
 | Bundle ID | `com.warhound.orbit` (Xcode registers it on first archive; if not listed, developer.apple.com → Identifiers → +) |
 | SKU | `orbit-ios` |
