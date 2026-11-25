@@ -60,6 +60,7 @@ final class AudioPlayer {
     private var observations: [NSKeyValueObservation] = []
     private var endObserver: NSObjectProtocol?
     private var syncedSeekID: UUID?
+    private var lastSynced: (key: String, position: Double)?
     private var lastSaved: Date = .distantPast
     private var artwork: MPMediaItemArtwork?
     private var sleepTask: Task<Void, Never>?
@@ -354,14 +355,20 @@ final class AudioPlayer {
         currentTime = seconds
         // Each save refreshes every list on screen, so not too often. Pause and episode
         // changes save straight away.
-        if Date.now.timeIntervalSince(lastSaved) > 20 { saveProgress() }
+        if Date.now.timeIntervalSince(lastSaved) > 20 { saveProgress(sync: false) }
     }
 
-    func saveProgress() {
+    /// Saves the position locally. `sync` sends it to iCloud too: on pause, episode change and
+    /// backgrounding, but not on the periodic save during playback (too chatty on poor signal).
+    func saveProgress(sync: Bool = true) {
         lastSaved = .now
-        guard let episode, !episode.isPlayed, episode.playbackPosition != currentTime else { return }
-        episode.playbackPosition = currentTime
-        try? episode.modelContext?.save()
+        guard let episode, !episode.isPlayed else { return }
+        if episode.playbackPosition != currentTime {
+            episode.playbackPosition = currentTime
+            try? episode.modelContext?.save()
+        }
+        guard sync, lastSynced?.key != episode.key || lastSynced?.position != currentTime else { return }
+        lastSynced = (episode.key, currentTime)
         ListeningSync.shared.recordPlayback([episode])
     }
 

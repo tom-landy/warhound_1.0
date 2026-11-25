@@ -66,7 +66,10 @@ enum FeedService {
         let episodes = podcast.sortedEpisodes
         let latest = Array(episodes.lazy.filter { !$0.isPlayed }.prefix(perShow))
         let keep = Set(latest.map(\.key))
-        for episode in episodes where !keep.contains(episode.key) && !AudioPlayer.shared.isCurrent(episode) {
+        // Queued and partly played episodes keep their downloads too: they're the ones
+        // most likely to be played next, often without signal.
+        for episode in episodes where !keep.contains(episode.key) && !AudioPlayer.shared.isCurrent(episode)
+            && !episode.isQueued && !episode.isInProgress {
             DownloadManager.shared.removeAutomaticDownload(episode)
         }
         return latest

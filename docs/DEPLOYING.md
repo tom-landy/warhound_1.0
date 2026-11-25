@@ -236,8 +236,9 @@ In the iPhone Library, tap the Smart Playlists toolbar button. On iPad, choose S
 ### Configure CloudKit
 
 1. In Certificates, Identifiers & Profiles, enable iCloud with CloudKit for the Orbit App ID. Create or select `iCloud.com.warhound.orbit` and associate it with the App ID. Builds using a different `ORBIT_BUNDLE_ID` need their own matching container with the `iCloud.` prefix.
-2. In Xcode, make sure the Orbit target uses the team that owns that container and refresh the signing profile. Install a development build and enable **Settings → Listening Sync → Sync with iCloud** on a device signed into iCloud.
-3. Follow a show, play an episode, and create a playlist in the development build. Use CloudKit Console to confirm that the development schema contains the `ListeningState` record type with its encrypted `encryptedPayload` field. Deploy the schema to production before testing with TestFlight. Development and TestFlight builds use separate CloudKit environments.
+2. Push Notifications must be enabled for the Orbit App ID too (Listening Sync uses silent CloudKit pushes to sync in the background; users see no prompt). Xcode's automatic signing adds it from `Config/Orbit.entitlements`; if signing complains, tick **Push Notifications** on the App ID in Certificates, Identifiers & Profiles.
+3. In Xcode, make sure the Orbit target uses the team that owns that container and refresh the signing profile. Install a development build and enable **Settings → Listening Sync → Sync with iCloud** on a device signed into iCloud.
+4. Follow a show, play an episode, and create a playlist in the development build. Use CloudKit Console to confirm that the development schema contains the `ListeningState` record type with its encrypted `encryptedPayload` field. Deploy the schema to production before testing with TestFlight. Development and TestFlight builds use separate CloudKit environments.
 
 ### Two-device release check
 

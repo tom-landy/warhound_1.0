@@ -45,12 +45,10 @@ struct OrbitApp: App {
                 .environment(\.theme, theme)
                 .tint(theme.color)
                 .preferredColorScheme(appearance.colorScheme)
+                // Sync when Orbit opens or comes back; CloudKit pushes cover changes in between.
                 .task(id: syncEnabled && scenePhase == .active) {
                     guard syncEnabled, scenePhase == .active, !DemoData.isActive else { return }
-                    while !Task.isCancelled {
-                        await ListeningSync.shared.sync()
-                        try? await Task.sleep(for: .seconds(60))
-                    }
+                    await ListeningSync.shared.sync()
                 }
         }
         .modelContainer(container)
@@ -68,6 +66,21 @@ struct OrbitApp: App {
 }
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // Silent CloudKit pushes for Listening Sync. Shows nothing and asks no permission.
+        application.registerForRemoteNotifications()
+        return true
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        Task { @MainActor in
+            let handled = await ListeningSync.shared.handleRemoteNotification(userInfo)
+            completionHandler(handled ? .newData : .noData)
+        }
+    }
+
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         guard session.role == .windowApplication else {

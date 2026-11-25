@@ -18,6 +18,18 @@ final class ListeningSync {
         var account: String?
         var seeded = false
         var pending: [String: Revision] = [:]
+        // Saved so a relaunch only fetches changes, not every record (built for thousands).
+        var token: Data?
+        var cache: [String: CachedRecord]?
+        var applied: [String: String]?
+        var subscribed: Bool?
+    }
+
+    /// A synced record's latest revision plus its CloudKit system fields (record ID, change tag),
+    /// enough to update it later without fetching it again.
+    private struct CachedRecord: Codable {
+        var revision: Revision
+        var systemFields: Data
     }
 
     enum Status: Equatable {
@@ -34,6 +46,8 @@ final class ListeningSync {
     @ObservationIgnored private var remote: [String: (revision: Revision, record: CKRecord)] = [:]
     @ObservationIgnored private var applied: [String: String] = [:]
     @ObservationIgnored private var feedRetryAfter: [URL: Date] = [:]
+    @ObservationIgnored private var restored = false
+    private let subscriptionID = "orbit-listening-changes"
     private let zoneID = CKRecordZone.ID(zoneName: "OrbitListening", ownerName: CKCurrentUserDefaultName)
     private let recordType = "ListeningState"
     private let payload = "encryptedPayload"
@@ -108,6 +122,7 @@ final class ListeningSync {
                 journal.account = account
                 try save(journal)
             }
+            restoreState(from: journal)
 
             let database = cloud.privateCloudDatabase
             if !zoneReady {
@@ -118,22 +133,79 @@ final class ListeningSync {
                 }
                 zoneReady = true
             }
+            try await subscribeIfNeeded(database)
             try await pull(from: database)
             guard enabled else { return }
             try seedIfNeeded(context)
             try await applyRemote(in: context)
             guard enabled else { return }
             try await push(to: database)
+            try persistState()
             status = .synced
         } catch let error as CKError where [.zoneNotFound, .changeTokenExpired].contains(error.code) {
             zoneReady = false
             token = nil
             remote.removeAll()
             applied.removeAll()
+            try? persistState()
             status = .retrying
         } catch {
             status = .retrying
         }
+    }
+
+    // MARK: - Saved state
+
+    private func restoreState(from journal: Journal) {
+        guard !restored else { return }
+        restored = true
+        if let data = journal.token {
+            token = try? NSKeyedUnarchiver.unarchivedObject(ofClass: CKServerChangeToken.self, from: data)
+        }
+        for (key, cached) in journal.cache ?? [:] {
+            guard let coder = try? NSKeyedUnarchiver(forReadingFrom: cached.systemFields) else { continue }
+            coder.requiresSecureCoding = true
+            if let record = CKRecord(coder: coder) { remote[key] = (cached.revision, record) }
+            coder.finishDecoding()
+        }
+        applied = journal.applied ?? [:]
+    }
+
+    private func persistState() throws {
+        var journal = try loadJournal()
+        journal.token = token.flatMap { try? NSKeyedArchiver.archivedData(withRootObject: $0, requiringSecureCoding: true) }
+        journal.cache = remote.mapValues { entry in
+            let coder = NSKeyedArchiver(requiringSecureCoding: true)
+            entry.record.encodeSystemFields(with: coder)
+            coder.finishEncoding()
+            return CachedRecord(revision: entry.revision, systemFields: coder.encodedData)
+        }
+        journal.applied = applied
+        try save(journal)
+    }
+
+    // MARK: - Change notifications
+
+    /// Asks CloudKit to send a silent push when another device changes something, so Orbit
+    /// syncs in the background instead of polling. No permission prompt: nothing is shown.
+    private func subscribeIfNeeded(_ database: CKDatabase) async throws {
+        var journal = try loadJournal()
+        guard journal.subscribed != true else { return }
+        let subscription = CKDatabaseSubscription(subscriptionID: subscriptionID)
+        let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true
+        subscription.notificationInfo = info
+        _ = try await database.modifySubscriptions(saving: [subscription], deleting: [])
+        journal.subscribed = true
+        try save(journal)
+    }
+
+    /// Called by the app delegate when a CloudKit push arrives.
+    func handleRemoteNotification(_ userInfo: [AnyHashable: Any]) async -> Bool {
+        guard enabled, let note = CKNotification(fromRemoteNotificationDictionary: userInfo),
+              note.subscriptionID == subscriptionID else { return false }
+        await sync()
+        return true
     }
 
     private func loadJournal() throws -> Journal {
