@@ -281,6 +281,7 @@ struct MarkPlayedIntent: AppIntent {
             found.queueOrder = nil
             DownloadManager.shared.episodePlayed(found)
             try? found.modelContext?.save()
+            ListeningSync.shared.recordPlayback([found])
         }
         return .result()
     }

@@ -99,9 +99,9 @@ If Archive is greyed out: the device menu must be *Any iOS Device*, not a simula
 
 > **Orbit privacy policy**
 >
-> Orbit does not collect, store or share any personal information.
+> Orbit stores your library and settings on your device. Orbit has no separate account, analytics, advertising or tracking.
 >
-> Your subscriptions, listening history, downloads and settings are stored only on your device. Orbit has no accounts and no analytics, advertising or tracking.
+> If you enable Listening Sync, Orbit uses your private iCloud database to sync followed feed URLs, playback positions, played status and smart playlist rules between your Apple devices. Feed URLs can include access tokens. Downloaded audio remains on the device where you downloaded it. You can turn Listening Sync off in Settings.
 >
 > To work, Orbit connects directly to the podcast feeds and audio files you choose, and to Apple's podcast directory when you search. Those services may see your device's IP address, as with any web request. Orbit sends them nothing else about you.
 >

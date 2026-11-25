@@ -31,6 +31,15 @@ final class Podcast {
         self.isSubscribed = false
     }
 
+    @MainActor
+    func setFollowing(_ followed: Bool) {
+        guard isSubscribed != followed else { return }
+        isSubscribed = followed
+        subscribedAt = followed ? .now : nil
+        try? modelContext?.save()
+        ListeningSync.shared.recordSubscription(self)
+    }
+
     var sortedEpisodes: [Episode] {
         episodes.sorted { $0.pubDate > $1.pubDate }
     }

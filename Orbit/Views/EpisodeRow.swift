@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct EpisodeRow: View {
@@ -55,8 +56,7 @@ struct EpisodeRow: View {
             if episode.isDownloaded { downloads.remove(episode) } else { downloads.download(episode) }
         }
         .accessibilityAction(named: episode.isPlayed ? "Mark as Unplayed" : "Mark as Played") {
-            episode.isPlayed.toggle()
-            if episode.isPlayed { episode.playbackPosition = 0; downloads.episodePlayed(episode) }
+            togglePlayed()
         }
         .sheet(isPresented: $showsNotes) { EpisodeNotesView(episode: episode) }
         .contextMenu {
@@ -80,11 +80,7 @@ struct EpisodeRow: View {
             }
             Divider()
             Button {
-                episode.isPlayed.toggle()
-                if episode.isPlayed {
-                    episode.playbackPosition = 0
-                    downloads.episodePlayed(episode)
-                }
+                togglePlayed()
             } label: {
                 Label(episode.isPlayed ? "Mark as Unplayed" : "Mark as Played",
                       systemImage: episode.isPlayed ? "circle" : "checkmark.circle")
@@ -107,11 +103,7 @@ struct EpisodeRow: View {
                 .tint(.indigo)
             }
             Button {
-                episode.isPlayed.toggle()
-                if episode.isPlayed {
-                    episode.playbackPosition = 0
-                    downloads.episodePlayed(episode)
-                }
+                togglePlayed()
             } label: {
                 Label(episode.isPlayed ? "Unplayed" : "Played",
                       systemImage: episode.isPlayed ? "circle" : "checkmark.circle")
@@ -150,6 +142,16 @@ struct EpisodeRow: View {
         if episode.isDownloaded { parts.append("Downloaded") }
         if episode.isQueued { parts.append("In Up Next") }
         return parts.joined(separator: ", ")
+    }
+
+    private func togglePlayed() {
+        episode.isPlayed.toggle()
+        if episode.isPlayed {
+            episode.playbackPosition = 0
+            downloads.episodePlayed(episode)
+        }
+        try? episode.modelContext?.save()
+        ListeningSync.shared.recordPlayback([episode])
     }
 
     private var header: String {

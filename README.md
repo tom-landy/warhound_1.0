@@ -20,6 +20,8 @@ Screenshots use built-in demo data. Regenerate them from Actions → iOS build �
 - Follow shows. New episodes from everything you follow appear under Latest, with in-progress ones under Continue.
 - Streams episodes with background audio, lock screen and Control Centre controls, AirPlay,
   back 15 / forward 30 seconds and 0.8× to 2× speed.
+- Save smart playlists with show, download, played status and duration filters.
+- Optionally sync follows, listening progress, played status and playlist rules through private iCloud.
 - Remembers where you stopped in every episode. Swipe right on an episode to mark it played.
 - Ten colour themes (orange by default) in Settings, the gear on Latest or Library. "Match app
   icon" swaps the Home Screen icon to the same colour.
@@ -44,8 +46,9 @@ Product → Scheme → Edit Scheme → Run → Arguments, and add `-demo`.
 1. Plug the phone in (or pair it over Wi-Fi in Window → Devices and Simulators).
 2. On the phone: Settings → Privacy & Security → Developer Mode → on, then restart.
 3. In Xcode: select the Orbit target → Signing & Capabilities → Team → your Apple ID
-   (add it under Xcode → Settings → Accounts if it isn't listed). With a free Apple ID the app
-   expires after 7 days and needs re-running from Xcode.
+   (add it under Xcode → Settings → Accounts if it isn't listed). Signed device builds with
+   Listening Sync need a development team with access to the Orbit CloudKit container. See
+   [CloudKit setup](docs/DEPLOYING.md#configure-cloudkit).
 4. The bundle ID is `com.warhound.orbit` (one setting, `ORBIT_BUNDLE_ID`, in the project's
    build settings; the watch app, widgets and app group follow it). It can't change after
    the first TestFlight upload.

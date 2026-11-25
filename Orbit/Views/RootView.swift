@@ -133,6 +133,7 @@ extension RootView {
         case .latest: LatestView(tab: $tab)
         case .allEpisodes: AllEpisodesView()
         case .library: LibraryView(tab: $tab)
+        case .smartPlaylists: SmartPlaylistsView()
         case .search: SearchView()
         case .upNext: UpNextView()
         case .settings: SettingsView(showsDone: true)

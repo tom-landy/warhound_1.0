@@ -12,6 +12,7 @@ enum FeedService {
             return existing
         }
         let parsed = try await fetch(feedURL)
+        if let existing = try find(feedURL, context: context) { return existing }
         let podcast = Podcast(feedURL: feedURL, title: parsed.title, author: parsed.author,
                               summary: parsed.summary.plainText, artworkURL: parsed.artworkURL)
         context.insert(podcast)
@@ -31,10 +32,12 @@ enum FeedService {
     /// Handy after importing, so years of back catalogue don't show as new.
     static func markAllPlayed(keepLatest: Bool, context: ModelContext) {
         let descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
+        var changed: [Episode] = []
         for podcast in (try? context.fetch(descriptor)) ?? [] {
             for (index, episode) in podcast.sortedEpisodes.enumerated() {
                 if keepLatest && index == 0 { continue }
                 if AudioPlayer.shared.isCurrent(episode) { continue }
+                changed.append(episode)
                 episode.isPlayed = true
                 episode.playbackPosition = 0
                 episode.queueOrder = nil
@@ -42,6 +45,7 @@ enum FeedService {
             }
         }
         try? context.save()
+        ListeningSync.shared.recordPlayback(changed)
     }
 
     /// Downloads each followed show's newest unplayed episodes, up to the per-show setting.

@@ -47,8 +47,7 @@ final class Importer {
                             if podcast.isSubscribed {
                                 self.alreadyFollowing += 1
                             } else {
-                                podcast.isSubscribed = true
-                                podcast.subscribedAt = .now
+                                podcast.setFollowing(true)
                                 self.added += 1
                             }
                         } catch {

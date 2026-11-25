@@ -14,6 +14,7 @@ on:
       - "Orbit.xcodeproj/**"
       - "Orbit-Info.plist"
       - "tools/feedcheck/**"
+      - "tools/featurecheck/**"
       - ".github/workflows/ios.yml"
   # Mac minutes are expensive: only build when app code changes, not for docs.
   pull_request:
@@ -27,6 +28,7 @@ on:
       - "Orbit.xcodeproj/**"
       - "Orbit-Info.plist"
       - "tools/feedcheck/**"
+      - "tools/featurecheck/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
     inputs:
@@ -94,6 +96,10 @@ jobs:
         run: |
           swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift tools/feedcheck/main.swift -o /tmp/feedcheck
           /tmp/feedcheck tools/feedcheck/overcast-sample.opml
+      - name: Smart playlists and listening sync checks
+        run: |
+          swiftc Orbit/Models/SmartPlaylist.swift Orbit/Models/ListeningSyncRevision.swift tools/featurecheck/main.swift -o /tmp/featurecheck
+          /tmp/featurecheck
       - name: Screenshots
         if: github.event_name == 'workflow_dispatch' && inputs.screenshots
         timeout-minutes: 28
