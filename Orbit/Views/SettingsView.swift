@@ -2,6 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
+    @AppStorage(ListeningSync.enabledKey) private var syncEnabled = false
+    @State private var listeningSync = ListeningSync.shared
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     @AppStorage(AccentTheme.matchIconKey) private var matchIcon = false
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
@@ -77,6 +79,19 @@ struct SettingsView: View {
                     Text("Wi-Fi Only applies to automatic downloads. Episodes you download yourself use any connection. Turn off automatic downloads for a show in its ⋯ menu.")
                 }
 
+                Section {
+                    Toggle("Sync with iCloud", isOn: $syncEnabled)
+                    if syncEnabled {
+                        LabeledContent("Status", value: syncStatus)
+                        Button("Sync Now") { Task { await listeningSync.sync() } }
+                            .disabled(listeningSync.status == .syncing)
+                    }
+                } header: {
+                    Text("Listening Sync")
+                } footer: {
+                    Text("Sync follows, listening progress and smart playlists in your private iCloud database. Followed feed URLs can include access tokens. Audio downloads stay on this device.")
+                }
+
                 Section("Your Shows") {
                     NavigationLink {
                         StatsView()
@@ -129,6 +144,17 @@ struct SettingsView: View {
                 WidgetSync.schedule()
             }
             .onChange(of: matchIcon) { _, new in theme.applyIcon(new) }
+    }
+
+    private var syncStatus: String {
+        switch listeningSync.status {
+        case .idle: return "Waiting to Sync"
+        case .syncing: return "Syncing"
+        case .synced: return "Synced"
+        case .unavailable: return "iCloud Unavailable"
+        case .differentAccount: return "Sign In to the Original iCloud Account"
+        case .retrying: return "Couldn’t Sync. Will Retry"
+        }
     }
 
     private var storageUsed: String {

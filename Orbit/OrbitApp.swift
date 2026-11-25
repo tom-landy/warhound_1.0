@@ -6,6 +6,7 @@ import UIKit
 struct OrbitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(ListeningSync.enabledKey) private var syncEnabled = false
     @State private var player = AudioPlayer.shared
     @AppStorage(AccentTheme.storageKey) private var theme: AccentTheme = .orange
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
@@ -18,7 +19,7 @@ struct OrbitApp: App {
             DownloadManager.keepPerShowKey: 1,
         ])
         let demo = DemoData.isActive
-        let config = ModelConfiguration(isStoredInMemoryOnly: demo)
+        let config = ModelConfiguration(isStoredInMemoryOnly: demo, cloudKitDatabase: .none)
         do {
             container = try ModelContainer(for: Podcast.self, Episode.self, ListeningDay.self, configurations: config)
         } catch {
@@ -44,6 +45,13 @@ struct OrbitApp: App {
                 .environment(\.theme, theme)
                 .tint(theme.color)
                 .preferredColorScheme(appearance.colorScheme)
+                .task(id: syncEnabled && scenePhase == .active) {
+                    guard syncEnabled, scenePhase == .active, !DemoData.isActive else { return }
+                    while !Task.isCancelled {
+                        await ListeningSync.shared.sync()
+                        try? await Task.sleep(for: .seconds(60))
+                    }
+                }
         }
         .modelContainer(container)
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [container] in
@@ -51,6 +59,7 @@ struct OrbitApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
+                player.saveProgress()
                 BackgroundRefresh.schedule()
                 QuickActions.shared.update()
             }

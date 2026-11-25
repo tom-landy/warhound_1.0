@@ -61,6 +61,8 @@ struct PodcastDetailView: View {
                             e.playbackPosition = 0
                             downloads.episodePlayed(e)
                         }
+                        try? context.save()
+                        ListeningSync.shared.recordPlayback(podcast.episodes)
                     } label: { Label("Mark All as Played", systemImage: "checkmark.circle") }
                     ShareLink(item: podcast.websiteURL ?? podcast.feedURL, subject: Text(podcast.title)) {
                         Label("Share Show", systemImage: "square.and.arrow.up")
@@ -69,7 +71,7 @@ struct PodcastDetailView: View {
                         UIPasteboard.general.url = podcast.feedURL
                     } label: { Label("Copy Feed Link", systemImage: "link") }
                     if podcast.isSubscribed {
-                        Button(role: .destructive) { podcast.isSubscribed = false } label: {
+                        Button(role: .destructive) { podcast.setFollowing(false) } label: {
                             Label("Unfollow", systemImage: "minus.circle")
                         }
                     }
@@ -97,9 +99,7 @@ struct PodcastDetailView: View {
             }
             Button {
                 withAnimation(.snappy) {
-                    podcast.isSubscribed.toggle()
-                    podcast.subscribedAt = podcast.isSubscribed ? .now : nil
-                    try? context.save()
+                    podcast.setFollowing(!podcast.isSubscribed)
                     // Start you off with the latest episode(s), on Wi-Fi.
                     if podcast.isSubscribed { FeedService.keepLatestDownloaded(context: context) }
                     SpotlightIndex.schedule(context: context)

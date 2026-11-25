@@ -69,7 +69,7 @@ The bundle ID changed to `com.warhound.orbit`, so Xcode needs your Team for it o
 3. In the middle column, under **TARGETS**, select **Orbit**.
 4. Tab **Signing & Capabilities**.
 5. Tick **Automatically manage signing**.
-6. **Team** → *Your Name (Personal Team)*.
+6. **Team** → select the Apple Developer team that owns the Orbit CloudKit container. See [Configure CloudKit](#configure-cloudkit).
 7. **Bundle Identifier** should read `com.warhound.orbit`. Leave it.
 8. The status should go green within a few seconds. If you see a red error, see **Troubleshooting** below.
 9. Watch app (optional): select target **OrbitWatch** → same tab → same Team. Bundle ID `com.warhound.orbit.watchkitapp`.
@@ -227,3 +227,21 @@ Tell me when it's approved; I'll make the code changes, you do the Apple-side st
 | Build errors in red after pulling | Product → Clean Build Folder (⇧⌘K), then ⌘R. Still failing: copy the first red error to me. |
 | App opens to an empty library | Expected after the bundle ID change: import your OPML again. |
 | Siri doesn't recognise “play X in Orbit” | Open Orbit once after installing, wait a minute, try again. Settings → Apps → Orbit → Siri → make sure it's allowed. |
+
+
+## Smart playlists and iCloud Listening Sync
+
+In the iPhone Library, tap the Smart Playlists toolbar button. On iPad, choose Smart Playlists from the More menu. Save a playlist with show, unplayed, downloaded, and duration filters. Play in Order starts the first result and puts the other matches ahead of the existing Up Next queue.
+
+### Configure CloudKit
+
+1. In Certificates, Identifiers & Profiles, enable iCloud with CloudKit for the Orbit App ID. Create or select `iCloud.com.warhound.orbit` and associate it with the App ID. Builds using a different `ORBIT_BUNDLE_ID` need their own matching container with the `iCloud.` prefix.
+2. In Xcode, make sure the Orbit target uses the team that owns that container and refresh the signing profile. Install a development build and enable **Settings → Listening Sync → Sync with iCloud** on a device signed into iCloud.
+3. Follow a show, play an episode, and create a playlist in the development build. Use CloudKit Console to confirm that the development schema contains the `ListeningState` record type with its encrypted `encryptedPayload` field. Deploy the schema to production before testing with TestFlight. Development and TestFlight builds use separate CloudKit environments.
+
+### Two-device release check
+
+- Use an iPhone and iPad signed into the same iCloud account. Enable sync on both. Follow and unfollow a show, pause an episode mid-playback, and mark it played and unplayed. Open the other app or tap **Sync Now** and confirm each state arrives.
+- Disconnect one device, make an edit, relaunch while offline, then reconnect. Verify the edit reaches the other device. When both devices edit the same item, Orbit uses the later edit.
+- Create, edit, and delete a smart playlist on one device. Verify the rules update on the other and that the Downloaded filter uses the audio present on that device. Check Play in Order with episodes already in Up Next.
+- Try an unavailable or different iCloud account. Confirm that the status explains why sync is paused and the local library stays accessible.

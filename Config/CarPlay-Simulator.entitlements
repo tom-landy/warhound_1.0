@@ -6,5 +6,13 @@
 	     entitlement. Once approved, add this key to the device build too. -->
 	<key>com.apple.developer.carplay-audio</key>
 	<true/>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.$(ORBIT_BUNDLE_ID)</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
 </dict>
 </plist>

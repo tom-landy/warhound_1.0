@@ -41,7 +41,7 @@ struct LibraryView: View {
                             .buttonStyle(.plain)
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    podcast.isSubscribed = false
+                                    podcast.setFollowing(false)
                                 } label: {
                                     Label("Unfollow", systemImage: "minus.circle")
                                 }
@@ -56,6 +56,13 @@ struct LibraryView: View {
         .navigationTitle("Library")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    SmartPlaylistsView()
+                } label: {
+                    Label("Smart Playlists", systemImage: "list.bullet.rectangle")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
                     StatsView()

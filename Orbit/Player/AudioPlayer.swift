@@ -59,6 +59,7 @@ final class AudioPlayer {
     private var timeObserver: Any?
     private var observations: [NSKeyValueObservation] = []
     private var endObserver: NSObjectProtocol?
+    private var syncedSeekID: UUID?
     private var lastSaved: Date = .distantPast
     private var artwork: MPMediaItemArtwork?
     private var sleepTask: Task<Void, Never>?
@@ -91,7 +92,7 @@ final class AudioPlayer {
     // MARK: - Transport
 
     func play(_ episode: Episode) {
-        if self.episode?.key == episode.key {
+        if isCurrent(episode), !episode.isPlayed {
             togglePlayPause()
             return
         }
@@ -106,15 +107,20 @@ final class AudioPlayer {
         var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
         descriptor.fetchLimit = 1
         guard let found = try? context.fetch(descriptor).first else { return }
-        if isCurrent(found) { resume() } else { load(found, autoplay: true) }
+        if isCurrent(found), !found.isPlayed { resume() } else { load(found, autoplay: true) }
     }
 
     func load(_ episode: Episode, autoplay: Bool) {
         saveProgress()
         flushStats()
         self.episode = episode
+        syncedSeekID = nil
         UserDefaults.standard.set(episode.key, forKey: Self.lastEpisodeKey)
-        if episode.isPlayed { episode.isPlayed = false; episode.playbackPosition = 0 }
+        if episode.isPlayed {
+            episode.isPlayed = false
+            episode.playbackPosition = 0
+            ListeningSync.shared.recordPlayback([episode])
+        }
         episode.lastPlayedAt = .now
         episode.queueOrder = nil // it's playing now, so it leaves Up Next
         speed = episode.podcast?.playbackSpeed ?? defaultSpeed
@@ -164,6 +170,10 @@ final class AudioPlayer {
     }
 
     func resume() {
+        if let episode, episode.isPlayed {
+            load(episode, autoplay: true)
+            return
+        }
         try? AVAudioSession.sharedInstance().setActive(true)
         player.playImmediately(atRate: speed)
     }
@@ -196,6 +206,7 @@ final class AudioPlayer {
 
     func seek(to time: TimeInterval) {
         let target = max(0, duration > 0 ? min(time, duration - 1) : time)
+        syncedSeekID = nil
         currentTime = target
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600)) { [weak self] _ in
             Task { @MainActor in
@@ -236,6 +247,23 @@ final class AudioPlayer {
         var items = queue()
         items.move(fromOffsets: source, toOffset: destination)
         for (index, episode) in items.enumerated() { episode.queueOrder = Double(index) }
+        saveQueue()
+    }
+
+    /// Play the selection first, then continue with the rest of the existing queue.
+    func playInOrder(_ episodes: [Episode]) {
+        guard let first = episodes.first else { return }
+        let selected = Set(episodes.map(\.key))
+        let remaining = queue().filter { !selected.contains($0.key) }
+        if !isCurrent(first) || first.isPlayed {
+            load(first, autoplay: true)
+        } else {
+            first.queueOrder = nil
+            resume()
+        }
+        for (index, episode) in (Array(episodes.dropFirst()) + remaining).enumerated() {
+            episode.queueOrder = Double(index)
+        }
         saveQueue()
     }
 
@@ -322,18 +350,43 @@ final class AudioPlayer {
         } else {
             lastTickAt = nil
         }
-        guard seconds.isFinite, !isScrubbing else { return }
+        guard seconds.isFinite, !isScrubbing, syncedSeekID == nil else { return }
         currentTime = seconds
         // Each save refreshes every list on screen, so not too often. Pause and episode
         // changes save straight away.
         if Date.now.timeIntervalSince(lastSaved) > 20 { saveProgress() }
     }
 
-    private func saveProgress() {
-        guard let episode else { return }
+    func saveProgress() {
+        lastSaved = .now
+        guard let episode, !episode.isPlayed, episode.playbackPosition != currentTime else { return }
         episode.playbackPosition = currentTime
         try? episode.modelContext?.save()
-        lastSaved = .now
+        ListeningSync.shared.recordPlayback([episode])
+    }
+
+    /// Defer a remote update while this item is actively playing on this device.
+    func applySyncedPlayback(to episode: Episode, position: Double, played: Bool) -> Bool {
+        let current = isCurrent(episode)
+        guard !current || player.timeControlStatus == .paused else { return false }
+        let position = played || !position.isFinite ? 0 : max(0, position)
+        guard episode.playbackPosition != position || episode.isPlayed != played else { return true }
+        episode.playbackPosition = position
+        episode.isPlayed = played
+        if current {
+            currentTime = position
+            lastSaved = .now
+            let seekID = UUID()
+            syncedSeekID = seekID
+            player.seek(to: CMTime(seconds: position, preferredTimescale: 600)) { [weak self] _ in
+                Task { @MainActor in
+                    if self?.syncedSeekID == seekID { self?.syncedSeekID = nil }
+                }
+            }
+            updateNowPlaying()
+            announce()
+        }
+        return true
     }
 
     private func observeEnd(of item: AVPlayerItem) {
@@ -344,6 +397,7 @@ final class AudioPlayer {
                 episode.isPlayed = true
                 episode.playbackPosition = 0
                 try? episode.modelContext?.save()
+                ListeningSync.shared.recordPlayback([episode])
                 self.currentTime = 0
                 DownloadManager.shared.episodePlayed(episode)
                 self.flushStats(finished: 1)
