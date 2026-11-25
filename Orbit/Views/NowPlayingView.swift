@@ -19,7 +19,7 @@ struct NowPlayingView: View {
                 ArtworkView(url: episode.displayArtwork, seed: episode.podcast?.title ?? "", cornerRadius: 18)
                     .shadow(color: .black.opacity(colorScheme == .dark ? 0.5 : 0.2), radius: 30, y: 14)
                     .scaleEffect(player.isPlaying || reduceMotion ? 1 : 0.86)
-                    .animation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.25), value: player.isPlaying)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: player.isPlaying)
                     .padding(.horizontal, 32)
 
                 Spacer(minLength: 24)

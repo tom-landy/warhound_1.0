@@ -114,7 +114,7 @@ struct EpisodeRow: View {
             if episode.isDownloaded {
                 // Not .destructive: that role holds the row at the edge waiting for it to be
                 // deleted, and here the episode stays in the list.
-                Button { withAnimation(.snappy) { downloads.remove(episode) } } label: {
+                Button { withAnimation(.snappy(duration: 0.25)) { downloads.remove(episode) } } label: {
                     Label("Remove", systemImage: "trash")
                 }
                 .tint(.red)

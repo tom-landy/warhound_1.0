@@ -183,7 +183,7 @@ private struct MiniPlayerInset: ViewModifier {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring(duration: 0.35), value: player.episode?.key)
+        .animation(.snappy(duration: 0.25), value: player.episode?.key)
     }
 }
 

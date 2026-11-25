@@ -28,7 +28,7 @@ struct PodcastDetailView: View {
                     Text("\(episodes.count) episodes")
                     Spacer()
                     Button(hidePlayed ? "Show All" : "Hide Played") {
-                        withAnimation { hidePlayed.toggle() }
+                        withAnimation(.snappy(duration: 0.25)) { hidePlayed.toggle() }
                     }
                     .font(.subheadline)
                     .textCase(nil)
@@ -98,7 +98,7 @@ struct PodcastDetailView: View {
                 }
             }
             Button {
-                withAnimation(.snappy) {
+                withAnimation(.snappy(duration: 0.25)) {
                     podcast.setFollowing(!podcast.isSubscribed)
                     // Start you off with the latest episode(s), on Wi-Fi.
                     if podcast.isSubscribed { FeedService.keepLatestDownloaded(context: context) }
@@ -122,7 +122,7 @@ struct PodcastDetailView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(expanded ? nil : 3)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .onTapGesture { withAnimation { expanded.toggle() } }
+                    .onTapGesture { withAnimation(.snappy(duration: 0.25)) { expanded.toggle() } }
             }
         }
         .frame(maxWidth: .infinity)

@@ -375,7 +375,7 @@ private struct ChaptersPanel: View {
                             }
                         }
                         .onChange(of: player.currentChapterIndex) { _, index in
-                            if let index { withAnimation { proxy.scrollTo(index, anchor: .center) } }
+                            if let index { withAnimation(.snappy(duration: 0.25)) { proxy.scrollTo(index, anchor: .center) } }
                         }
                     }
                 }

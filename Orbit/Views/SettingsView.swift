@@ -50,7 +50,7 @@ struct SettingsView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(AccentTheme.allCases) { option in
                             Swatch(theme: option, selected: option == theme) {
-                                withAnimation(.snappy) { theme = option }
+                                withAnimation(.snappy(duration: 0.25)) { theme = option }
                             }
                         }
                     }

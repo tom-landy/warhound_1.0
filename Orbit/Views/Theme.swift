@@ -35,6 +35,7 @@ struct ArtworkView: View {
     let url: URL?
     var seed: String = ""
     var cornerRadius: CGFloat = 10
+    @Environment(\.displayScale) private var displayScale
 
     /// Stable colour per show so placeholders don't all look the same.
     private var hue: Double {
@@ -47,12 +48,8 @@ struct ArtworkView: View {
         Color.clear
             .aspectRatio(1, contentMode: .fit)
             .overlay {
-                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.2))) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFit()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(.tertiarySystemFill))
-                    } else {
+                GeometryReader { proxy in
+                    CachedArtwork(url: url, pixels: ArtworkCache.bucket(proxy.size.width * displayScale)) {
                         ZStack {
                             LinearGradient(colors: [Color(hue: hue, saturation: 0.45, brightness: 0.45),
                                                     Color(hue: hue, saturation: 0.6, brightness: 0.2)],
@@ -69,6 +66,40 @@ struct ArtworkView: View {
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        }
+    }
+}
+
+/// Shows downsized, cached artwork: instantly if it's in memory, otherwise loaded off the main
+/// thread with a short fade. Replaces AsyncImage, which re-decoded full-size covers on scroll.
+private struct CachedArtwork<Placeholder: View>: View {
+    let url: URL?
+    let pixels: Int
+    @ViewBuilder var placeholder: () -> Placeholder
+    @State private var loaded: (key: String, image: UIImage)?
+
+    private var key: String { "\(url?.absoluteString ?? "")#\(pixels)" }
+
+    var body: some View {
+        let image = loaded?.key == key ? loaded?.image : url.flatMap { ArtworkCache.shared.cached($0, size: pixels) }
+        ZStack {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.tertiarySystemFill))
+                    .transition(.opacity)
+            } else {
+                placeholder()
+            }
+        }
+        .task(id: key) {
+            guard let url, loaded?.key != key, ArtworkCache.shared.cached(url, size: pixels) == nil else { return }
+            let size = pixels
+            let fetched = await Task.detached(priority: .userInitiated) {
+                await ArtworkCache.shared.image(url, size: size)
+            }.value
+            guard let fetched, !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.15)) { loaded = (key, fetched) }
         }
     }
 }
