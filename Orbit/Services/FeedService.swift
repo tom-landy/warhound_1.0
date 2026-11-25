@@ -47,13 +47,25 @@ enum FeedService {
     /// Downloads each followed show's newest unplayed episodes, up to the per-show setting.
     /// Runs after every refresh, so it also catches shows that were just imported.
     static func keepLatestDownloaded(context: ModelContext) {
-        let perShow = max(1, UserDefaults.standard.integer(forKey: DownloadManager.keepPerShowKey))
         let descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed && $0.autoDownload })
         for podcast in (try? context.fetch(descriptor)) ?? [] {
-            for episode in podcast.sortedEpisodes.lazy.filter({ !$0.isPlayed }).prefix(perShow) where !episode.isDownloaded {
+            let latest = trimAutomaticDownloads(for: podcast)
+            for episode in latest where !episode.isDownloaded {
                 DownloadManager.shared.download(episode, automatic: true)
             }
         }
+    }
+
+    @discardableResult
+    static func trimAutomaticDownloads(for podcast: Podcast) -> [Episode] {
+        let perShow = max(1, UserDefaults.standard.integer(forKey: DownloadManager.keepPerShowKey))
+        let episodes = podcast.sortedEpisodes
+        let latest = Array(episodes.lazy.filter { !$0.isPlayed }.prefix(perShow))
+        let keep = Set(latest.map(\.key))
+        for episode in episodes where !keep.contains(episode.key) && !AudioPlayer.shared.isCurrent(episode) {
+            DownloadManager.shared.removeAutomaticDownload(episode)
+        }
+        return latest
     }
 
     static func refresh(_ podcast: Podcast, context: ModelContext) async throws {
@@ -75,7 +87,7 @@ enum FeedService {
                 group.addTask { @MainActor in try? await refresh(podcast, context: context) }
             }
         }
-        DownloadManager.shared.cleanUp()
+        DownloadManager.shared.cleanUp(keeping: AudioPlayer.shared.episode)
         keepLatestDownloaded(context: context)
         SpotlightIndex.schedule(context: context)
     }

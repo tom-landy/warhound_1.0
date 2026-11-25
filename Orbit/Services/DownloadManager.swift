@@ -13,6 +13,16 @@ final class DownloadManager: NSObject {
     static let removePlayedKey = "removePlayedDownloads"
     static let keepPerShowKey = "downloadsPerShow"
     static let maxRetries = 8
+    // Persist provenance in task descriptions and file names across app relaunches.
+    // Existing tasks and files have no prefix and are kept as manual downloads.
+    private nonisolated static let automaticPrefix = "automatic-"
+
+    private nonisolated static func downloadKey(for task: URLSessionTask) -> String? {
+        guard let description = task.taskDescription else { return nil }
+        return description.hasPrefix(automaticPrefix)
+            ? String(description.dropFirst(automaticPrefix.count))
+            : description
+    }
 
     /// Files live in Application Support, excluded from iCloud backup.
     nonisolated static let directory: URL = {
@@ -60,7 +70,9 @@ final class DownloadManager: NSObject {
         Task {
             // Reattach to downloads that were running when the app was last closed.
             for task in await session.allTasks {
-                guard let download = task as? URLSessionDownloadTask, let key = task.taskDescription else { continue }
+                guard let download = task as? URLSessionDownloadTask,
+                      download.state == .running || download.state == .suspended,
+                      let key = Self.downloadKey(for: download), tasks[key] == nil else { continue }
                 tasks[key] = download
                 active.insert(key)
                 if progressByKey[key] == nil { progressByKey[key] = DownloadProgress() }
@@ -80,11 +92,11 @@ final class DownloadManager: NSObject {
     // MARK: - Actions
 
     /// `automatic` downloads respect the Wi-Fi only setting. Ones you tap always go.
-    func download(_ episode: Episode, automatic: Bool = false) {
+    func download(_ episode: Episode, automatic: Bool = false, allowMobileData: Bool = false) {
         guard session != nil, !episode.isDownloaded, !active.contains(episode.key) else { return }
         var request = URLRequest(url: episode.audioURL)
         request.setValue("Orbit/1.0", forHTTPHeaderField: "User-Agent")
-        if automatic && UserDefaults.standard.bool(forKey: Self.wifiOnlyKey) {
+        if automatic && !allowMobileData && UserDefaults.standard.bool(forKey: Self.wifiOnlyKey) {
             request.allowsCellularAccess = false
             request.allowsExpensiveNetworkAccess = false
             wifiOnly.insert(episode.key)
@@ -92,26 +104,47 @@ final class DownloadManager: NSObject {
             wifiOnly.remove(episode.key)
         }
         retries[episode.key] = 0
-        start(session.downloadTask(with: request), key: episode.key)
+        let task = session.downloadTask(with: request)
+        task.taskDescription = automatic ? Self.automaticPrefix + episode.key : episode.key
+        start(task, key: episode.key)
     }
 
     func cancel(_ episode: Episode) {
-        tasks[episode.key]?.cancel()
+        if let task = tasks[episode.key] {
+            task.taskDescription = nil
+            task.cancel()
+        }
         clear(episode.key)
     }
 
     /// Restarts a Wi-Fi-only download so it goes over mobile data now.
     func downloadNow(_ episode: Episode) {
+        let automatic = tasks[episode.key]?.taskDescription?.hasPrefix(Self.automaticPrefix) == true
         cancel(episode)
-        download(episode)
+        download(episode, automatic: automatic, allowMobileData: true)
     }
 
     func remove(_ episode: Episode) {
-        if let url = episode.localFileURL { try? FileManager.default.removeItem(at: url) }
+        if let url = episode.localFileURL, FileManager.default.fileExists(atPath: url.path) {
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                return
+            }
+        }
         episode.localFileName = nil
         episode.downloadedAt = nil
         episode.fileSize = 0
         try? episode.modelContext?.save()
+    }
+
+    func removeAutomaticDownload(_ episode: Episode) {
+        if episode.localFileName?.hasPrefix(Self.automaticPrefix) == true {
+            remove(episode)
+        }
+        if tasks[episode.key]?.taskDescription?.hasPrefix(Self.automaticPrefix) == true {
+            cancel(episode)
+        }
     }
 
     func removeAll() {
@@ -127,10 +160,10 @@ final class DownloadManager: NSObject {
 
     /// Drops played downloads (if that setting is on), forgets missing files and deletes orphans.
     func cleanUp(keeping current: Episode? = nil) {
-        guard context != nil else { return }
+        guard let context, let episodes = try? fetchDownloadedEpisodes(in: context) else { return }
         let removePlayed = UserDefaults.standard.bool(forKey: Self.removePlayedKey)
         var keep = Set<String>()
-        for episode in downloadedEpisodes() {
+        for episode in episodes {
             guard let name = episode.localFileName,
                   FileManager.default.fileExists(atPath: Self.directory.appendingPathComponent(name).path) else {
                 episode.localFileName = nil
@@ -138,20 +171,24 @@ final class DownloadManager: NSObject {
             }
             if removePlayed && episode.isPlayed && episode.key != current?.key {
                 remove(episode)
-            } else {
-                keep.insert(name)
             }
+            if episode.localFileName != nil { keep.insert(name) }
         }
         let files = (try? FileManager.default.contentsOfDirectory(at: Self.directory, includingPropertiesForKeys: nil)) ?? []
         for file in files where !keep.contains(file.lastPathComponent) {
             try? FileManager.default.removeItem(at: file)
         }
-        try? context?.save()
+        try? context.save()
     }
 
     func downloadedEpisodes() -> [Episode] {
+        guard let context else { return [] }
+        return (try? fetchDownloadedEpisodes(in: context)) ?? []
+    }
+
+    private func fetchDownloadedEpisodes(in context: ModelContext) throws -> [Episode] {
         let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.localFileName != nil })
-        return (try? context?.fetch(descriptor)) ?? []
+        return try context.fetch(descriptor)
     }
 
     /// Screenshot support only.
@@ -167,7 +204,6 @@ final class DownloadManager: NSObject {
     // MARK: - Internals
 
     private func start(_ task: URLSessionDownloadTask, key: String) {
-        task.taskDescription = key
         tasks[key] = task
         active.insert(key)
         if progressByKey[key] == nil { progressByKey[key] = DownloadProgress() }
@@ -192,7 +228,11 @@ final class DownloadManager: NSObject {
         }
     }
 
-    fileprivate func finished(_ key: String, fileName: String?, size: Int) {
+    fileprivate func finished(_ key: String, task: URLSessionDownloadTask, fileName: String?, size: Int) {
+        guard tasks[key] === task || tasks[key] == nil else {
+            if let fileName { try? FileManager.default.removeItem(at: Self.directory.appendingPathComponent(fileName)) }
+            return
+        }
         clear(key)
         guard let fileName else { failed.insert(key); return }
         let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == key })
@@ -205,6 +245,10 @@ final class DownloadManager: NSObject {
         episode.downloadedAt = .now
         episode.fileSize = size
         try? context?.save()
+        if fileName.hasPrefix(Self.automaticPrefix),
+           let podcast = episode.podcast, podcast.isSubscribed, podcast.autoDownload {
+            FeedService.trimAutomaticDownloads(for: podcast)
+        }
     }
 
     fileprivate func completed(_ key: String, task: URLSessionTask, error: Error?, resumeData: Data?) {
@@ -238,6 +282,7 @@ final class DownloadManager: NSObject {
         }
         let saved = retries[key]
         let heldForWifi = wifiOnly.contains(key)
+        next.taskDescription = task.taskDescription
         start(next, key: key)
         retries[key] = saved
         if heldForWifi { wifiOnly.insert(key) }
@@ -248,14 +293,14 @@ extension DownloadManager: URLSessionDownloadDelegate {
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                                 didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
                                 totalBytesExpectedToWrite: Int64) {
-        guard let key = downloadTask.taskDescription else { return }
+        guard let key = Self.downloadKey(for: downloadTask) else { return }
         let fraction = totalBytesExpectedToWrite > 0 ? Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) : -1
         MainActor.assumeIsolated { self.progress(key, fraction) }
     }
 
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                                 didFinishDownloadingTo location: URL) {
-        guard let key = downloadTask.taskDescription else { return }
+        guard let key = Self.downloadKey(for: downloadTask) else { return }
         // The temporary file is deleted when this method returns, so move it now.
         var fileName: String?
         var size = 0
@@ -266,7 +311,8 @@ extension DownloadManager: URLSessionDownloadDelegate {
                 ext = (downloadTask.response?.suggestedFilename as NSString?)?.pathExtension ?? ""
             }
             if ext.isEmpty || ext.count > 5 { ext = "mp3" }
-            let name = UUID().uuidString + "." + ext.lowercased()
+            let prefix = downloadTask.taskDescription?.hasPrefix(Self.automaticPrefix) == true ? Self.automaticPrefix : ""
+            let name = prefix + UUID().uuidString + "." + ext.lowercased()
             let destination = Self.directory.appendingPathComponent(name)
             do {
                 try FileManager.default.moveItem(at: location, to: destination)
@@ -274,11 +320,11 @@ extension DownloadManager: URLSessionDownloadDelegate {
                 size = (try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             } catch {}
         }
-        MainActor.assumeIsolated { self.finished(key, fileName: fileName, size: size) }
+        MainActor.assumeIsolated { self.finished(key, task: downloadTask, fileName: fileName, size: size) }
     }
 
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let key = task.taskDescription else { return }
+        guard let key = Self.downloadKey(for: task) else { return }
         let resumeData = (error as NSError?)?.userInfo[NSURLSessionDownloadTaskResumeData] as? Data
         MainActor.assumeIsolated { self.completed(key, task: task, error: error, resumeData: resumeData) }
     }

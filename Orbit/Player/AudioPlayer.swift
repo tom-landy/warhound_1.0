@@ -136,7 +136,8 @@ final class AudioPlayer {
             player.seek(to: CMTime(seconds: episode.playbackPosition, preferredTimescale: 600))
         }
         Task {
-            if let d = try? await item.asset.load(.duration), d.seconds.isFinite, d.seconds > 0 {
+            if let d = try? await item.asset.load(.duration), d.seconds.isFinite, d.seconds > 0,
+               self.player.currentItem === item {
                 self.duration = d.seconds
                 if episode.duration == 0 { episode.duration = d.seconds }
                 self.updateNowPlaying()
@@ -261,6 +262,7 @@ final class AudioPlayer {
     func setSleepTimer(_ timer: SleepTimer) {
         sleepTask?.cancel()
         sleepTask = nil
+        player.volume = 1
         sleepTimer = timer
         guard case .at(let date) = timer else { return }
         sleepTask = Task { [weak self] in
@@ -270,13 +272,13 @@ final class AudioPlayer {
             // Fade out rather than cut off mid-sentence.
             let steps = 16
             for step in 1...steps {
-                guard !Task.isCancelled else { self.player.volume = 1; return }
+                guard !Task.isCancelled else { return }
                 self.player.volume = Float(steps - step) / Float(steps)
                 try? await Task.sleep(for: .seconds(fade / Double(steps)))
             }
+            guard !Task.isCancelled else { return }
             self.pause()
-            self.player.volume = 1
-            self.sleepTimer = .off
+            self.setSleepTimer(.off)
         }
     }
 
