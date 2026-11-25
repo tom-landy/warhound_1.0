@@ -25,6 +25,8 @@ enum DemoData {
             let podcast = Podcast(feedURL: URL(string: "https://example.com/feed/\(i)")!, title: title, author: author,
                                   summary: "A demo show used for screenshots. \(author) makes it every week.")
             podcast.isSubscribed = true
+            // Covers for the fictional sample shows (design/render-demo-art.js), for screenshots.
+            podcast.artworkURL = Bundle.main.url(forResource: "demo-art-\(i)", withExtension: "png")
             context.insert(podcast)
             for (j, ep) in eps.enumerated() {
                 let e = Episode(key: "demo-\(i)-\(j)", guid: "\(i)-\(j)", title: ep,
