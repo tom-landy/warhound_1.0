@@ -1,4 +1,4 @@
-import CoreSpotlight
+@preconcurrency import CoreSpotlight
 import SwiftData
 import UniformTypeIdentifiers
 
@@ -49,8 +49,9 @@ enum SpotlightIndex {
                 try? await index.indexAppEntities(episodeEntities)
             }
         } else {
-            index.deleteAllSearchableItems { _ in
-                index.indexSearchableItems(items)
+            Task {
+                try? await index.deleteAllSearchableItems()
+                try? await index.indexSearchableItems(items)
             }
         }
     }
