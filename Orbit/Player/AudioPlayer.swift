@@ -102,6 +102,18 @@ final class AudioPlayer {
 
     func isCurrent(_ episode: Episode) -> Bool { self.episode?.key == episode.key }
 
+    /// Plays an episode from a point, e.g. a timestamp tapped in its notes.
+    func play(_ episode: Episode, from seconds: TimeInterval) {
+        if isCurrent(episode), !episode.isPlayed {
+            seek(to: seconds)
+            if !isPlaying { resume() }
+        } else {
+            episode.isPlayed = false
+            episode.playbackPosition = seconds
+            load(episode, autoplay: true)
+        }
+    }
+
     /// Plays an episode by its key (from a widget or the watch).
     func play(key: String) {
         guard let context = AppEnvironment.container?.mainContext else { return }

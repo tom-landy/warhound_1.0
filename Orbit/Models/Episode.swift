@@ -28,6 +28,8 @@ final class Episode {
     var chaptersChecked: Bool = false
     /// The episode's web page, for sharing.
     var webURL: URL?
+    /// Full show notes as light markdown (links kept); empty for older episodes.
+    var notes: String = ""
     var podcast: Podcast?
 
     init(key: String, guid: String, title: String, summary: String, pubDate: Date,

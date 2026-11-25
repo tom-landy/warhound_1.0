@@ -314,7 +314,7 @@ private struct EpisodeNotesPanel: View {
                 }
                 .buttonStyle(.bordered)
                 Divider()
-                Text(episode.summary.isEmpty ? AttributedString("No episode notes.") : episode.summary.linkified)
+                Text(episode.notesDisplay)
                     .font(.body)
                     .lineSpacing(4)
                     .textSelection(.enabled)
@@ -322,6 +322,11 @@ private struct EpisodeNotesPanel: View {
             .padding(22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .environment(\.openURL, OpenURLAction { url in
+            guard let seconds = Episode.seekSeconds(from: url) else { return .systemAction }
+            player.play(episode, from: seconds)
+            return .handled
+        })
     }
 }
 
@@ -381,18 +386,3 @@ private struct ChaptersPanel: View {
     }
 }
 
-extension String {
-    /// Plain text with any web addresses made tappable.
-    var linkified: AttributedString {
-        var result = AttributedString(self)
-        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return result }
-        let ns = self as NSString
-        for match in detector.matches(in: self, range: NSRange(location: 0, length: ns.length)) {
-            guard let url = match.url, let range = Range(match.range, in: self),
-                  let lower = AttributedString.Index(range.lowerBound, within: result),
-                  let upper = AttributedString.Index(range.upperBound, within: result) else { continue }
-            result[lower..<upper].link = url
-        }
-        return result
-    }
-}

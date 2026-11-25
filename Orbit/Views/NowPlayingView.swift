@@ -185,7 +185,7 @@ struct EpisodeNotesView: View {
                     Text([episode.pubDate.episodeDate, episode.duration.spoken].filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(episode.summary.isEmpty ? AttributedString("No episode notes.") : episode.summary.linkified)
+                    Text(episode.notesDisplay)
                         .font(.body)
                         .textSelection(.enabled)
                 }
@@ -209,6 +209,12 @@ struct EpisodeNotesView: View {
                 }
             }
         }
+        .environment(\.openURL, OpenURLAction { url in
+            // Timestamps in the notes jump to that point.
+            guard let seconds = Episode.seekSeconds(from: url) else { return .systemAction }
+            player.play(episode, from: seconds)
+            return .handled
+        })
         .presentationDetents([.medium, .large])
     }
 }

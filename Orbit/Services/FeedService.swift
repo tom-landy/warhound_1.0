@@ -122,6 +122,7 @@ enum FeedService {
                 episode.chaptersChecked = false
             }
             if episode.webURL == nil { episode.webURL = item.link }
+            if episode.notes.isEmpty, !item.summary.isEmpty { episode.notes = item.summary.notesMarkdown }
         }
         let known = Set(existing.keys)
         let prefix = podcast.feedURL.absoluteString + "#"
@@ -130,6 +131,7 @@ enum FeedService {
             let episode = Episode(key: prefix + item.guid, guid: item.guid, title: item.title,
                                   summary: item.summary.plainText, pubDate: item.pubDate ?? .distantPast,
                                   duration: item.duration, audioURL: audio, artworkURL: item.artworkURL)
+            episode.notes = item.summary.notesMarkdown
             episode.chaptersURL = item.chaptersURL
             episode.webURL = item.link
             context.insert(episode)
