@@ -3,8 +3,7 @@ import SwiftData
 import UIKit
 
 /// CarPlay screen: Latest, Downloaded and Library tabs, plus the system Now Playing screen.
-/// Needs Apple's CarPlay audio entitlement to appear in a real car. Until then it runs in
-/// Xcode's CarPlay Simulator (simulator builds use Config/CarPlay-Simulator.entitlements).
+/// Uses the CarPlay audio entitlement in Config/Orbit.entitlements.
 @MainActor
 final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate, CPNowPlayingTemplateObserver {
     private var interfaceController: CPInterfaceController?

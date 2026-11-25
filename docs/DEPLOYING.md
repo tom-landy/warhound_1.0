@@ -56,7 +56,7 @@ The project has four targets; you only touch the first two tonight:
 | **Orbit** | iPhone + iPad app | Yes |
 | **OrbitWatch** | Apple Watch app | Optional |
 | **OrbitWidgets** | Widgets + Control Centre button | No: needs the paid account |
-| (CarPlay) | Part of Orbit | Simulator only until Apple approves |
+| (CarPlay) | Part of Orbit | Yes: approved, works in the car |
 
 ---
 
@@ -132,7 +132,7 @@ delete the old one (press and hold its icon → Remove App). The old one's libra
 
 ---
 
-## 8. Try CarPlay (Mac only, until Apple approves)
+## 8. Try CarPlay in the simulator (no car needed)
 
 1. Scheme **Orbit**, device → any **iPhone simulator** (e.g. iPhone 16 Pro).
 2. ⌘R. In the simulator, import a couple of shows (Search works) or run with `-demo`
@@ -174,6 +174,18 @@ Send anything odd with a screenshot.
 
 ---
 
+## CarPlay on your phone (entitlement approved)
+
+1. developer.apple.com → Certificates, Identifiers & Profiles → **Identifiers** → `com.warhound.orbit`.
+2. Tab **Additional Capabilities** → tick **CarPlay Audio** → **Save**. (If the tab isn't there, the approval
+   email names the steps; Apple sometimes attaches it to the team rather than the App ID.)
+3. Xcode → Orbit target → Signing & Capabilities: automatic signing fetches a new profile. If it complains,
+   untick and re-tick **Automatically manage signing**.
+4. Build to the phone or let Xcode Cloud build for TestFlight, plug into the car (or pair wireless CarPlay):
+   Orbit appears on the CarPlay home screen.
+
+---
+
 ## 11. Once the paid Developer Program account is active
 
 Tell me when it's approved; I'll make the code changes, you do the Apple-side steps.
@@ -198,7 +210,7 @@ Tell me when it's approved; I'll make the code changes, you do the Apple-side st
 - Switch on the **App Group** so widgets work, and bundle the **widgets** and **watch app** into the iPhone app.
 - Privacy manifest file (Apple requires it for uploads).
 - A **TestFlight** workflow: one click in GitHub Actions builds, signs and uploads.
-- CarPlay entitlement on device builds once Apple approves.
+- CarPlay entitlement on device builds (done in 0.34).
 
 **Then TestFlight:**
 

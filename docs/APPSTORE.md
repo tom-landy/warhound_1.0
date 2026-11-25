@@ -151,7 +151,7 @@ How:
 >
 > NSAllowsArbitraryLoads is enabled because podcast feeds, artwork and audio files are published by thousands of independent hosts, and many still serve them over plain HTTP. Orbit only loads the feeds and files the user chooses.
 >
-> CarPlay support is included but inactive until the CarPlay audio entitlement is granted.
+> Orbit is a CarPlay audio app (entitlement granted). In CarPlay it shows Latest, Downloaded and Library tabs, and plays through the standard Now Playing screen.
 
 Contact details: your name, phone, email. Sign-in required: **No**.
 

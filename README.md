@@ -26,7 +26,7 @@ Screenshots use built-in demo data. Regenerate them from Actions â†’ iOS build â
 - Ten colour themes (orange by default) in Settings, the gear on Latest or Library. "Match app
   icon" swaps the Home Screen icon to the same colour.
 
-Not built yet: downloads for offline listening, an Up Next queue, a sleep timer, chapters, background refresh, CarPlay.
+Not built yet: downloads for offline listening, an Up Next queue, a sleep timer, chapters, background refresh.
 
 App Store submission pack (listing text, privacy, screenshots, upload from Xcode): [docs/APPSTORE.md](docs/APPSTORE.md).
 
