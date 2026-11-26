@@ -43,6 +43,7 @@ final class AudioPlayer {
 
     private(set) var sleepTimer: SleepTimer = .off
     private(set) var chapters: [Chapter] = []
+    @ObservationIgnored private var lastChapterIndex: Int?
 
     var defaultSpeed: Float {
         let saved = UserDefaults.standard.float(forKey: "playbackSpeed")
@@ -334,18 +335,56 @@ final class AudioPlayer {
         if !isPlaying { resume() }
     }
 
+    /// Reads chapters again for the playing episode if it has none yet (e.g. once its download lands).
+    func reloadChaptersIfNeeded(for episode: Episode) {
+        guard isCurrent(episode), chapters.isEmpty, !episode.chaptersChecked else { return }
+        loadChapters(for: episode)
+    }
+
     private func loadChapters(for episode: Episode) {
         let key = episode.key
         let audio = episode.audioURL
         let local = episode.localFileURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
         let chaptersURL = episode.chaptersURL
         Task {
-            let found = await Chapters.load(audio: audio, localFile: local, chaptersURL: chaptersURL)
+            var found = await Chapters.read(audio: audio, localFile: local, chaptersURL: chaptersURL)
+            // AAC (.m4a) episodes keep chapters in the file's own track, which AVFoundation reads.
+            if found?.isEmpty == true, let system = await Self.systemChapters(local ?? audio) { found = system }
+            // Couldn't reach the file: leave it unchecked so the next play tries again.
+            guard let found else { return }
             episode.chaptersData = found.isEmpty ? nil : try? JSONEncoder().encode(found)
             episode.chaptersChecked = true
             try? episode.modelContext?.save()
-            if self.episode?.key == key { self.chapters = found }
+            if self.episode?.key == key {
+                self.chapters = found
+                self.updateNowPlaying()
+                NotificationCenter.default.post(name: .orbitChaptersChanged, object: nil)
+            }
         }
+    }
+
+    private nonisolated static func systemChapters(_ url: URL) async -> [Chapter]? {
+        let asset = AVURLAsset(url: url)
+        guard let groups = try? await asset.loadChapterMetadataGroups(bestMatchingPreferredLanguages: Locale.preferredLanguages),
+              !groups.isEmpty else { return nil }
+        var chapters: [Chapter] = []
+        for group in groups {
+            let titleItem = AVMetadataItem.metadataItems(from: group.items, filteredByIdentifier: .commonIdentifierTitle).first
+            let title = (try? await titleItem?.load(.stringValue)) ?? nil
+            chapters.append(Chapter(start: group.timeRange.start.seconds, title: title ?? ""))
+        }
+        return chapters.filter { $0.start.isFinite }.sorted { $0.start < $1.start }
+    }
+
+    /// Episodes checked before chapters were retried on failure may have been marked as having
+    /// none after a dropped connection. Check those once more.
+    static func recheckMissingChapters(_ context: ModelContext) {
+        let flag = "chaptersRecheck1"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        let missing = (try? context.fetch(FetchDescriptor<Episode>(predicate: #Predicate { $0.chaptersChecked && $0.chaptersData == nil }))) ?? []
+        for episode in missing { episode.chaptersChecked = false }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: flag)
     }
 
     // MARK: - Internals
@@ -365,6 +404,13 @@ final class AudioPlayer {
         }
         guard seconds.isFinite, !isScrubbing, syncedSeekID == nil else { return }
         currentTime = seconds
+        // Lock Screen and CarPlay show the chapter number, so refresh it when the chapter changes.
+        let chapterIndex = currentChapterIndex
+        if chapterIndex != lastChapterIndex {
+            lastChapterIndex = chapterIndex
+            updateNowPlaying()
+            if !chapters.isEmpty { NotificationCenter.default.post(name: .orbitChaptersChanged, object: nil) }
+        }
         // Each save refreshes every list on screen, so not too often. Pause and episode
         // changes save straight away.
         if Date.now.timeIntervalSince(lastSaved) > 20 { saveProgress(sync: false) }
@@ -479,6 +525,10 @@ final class AudioPlayer {
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
         ]
         if let artwork { info[MPMediaItemPropertyArtwork] = artwork }
+        if let index = currentChapterIndex {
+            info[MPNowPlayingInfoPropertyChapterNumber] = index
+            info[MPNowPlayingInfoPropertyChapterCount] = chapters.count
+        }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
@@ -502,4 +552,6 @@ final class AudioPlayer {
 
 extension Notification.Name {
     static let orbitPlaybackChanged = Notification.Name("orbitPlaybackChanged")
+    /// The playing episode's chapters loaded, or the current chapter changed.
+    static let orbitChaptersChanged = Notification.Name("orbitChaptersChanged")
 }

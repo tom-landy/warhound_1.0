@@ -27,6 +27,7 @@ struct OrbitApp: App {
         }
         AppEnvironment.container = container
         DownloadManager.shared.configure(context: container.mainContext)
+        AudioPlayer.recheckMissingChapters(container.mainContext)
         WatchSync.shared.start(context: container.mainContext)
         if !demo { SpotlightIndex.schedule(context: container.mainContext) }
         if demo {

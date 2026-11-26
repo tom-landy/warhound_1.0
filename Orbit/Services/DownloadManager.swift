@@ -242,9 +242,12 @@ final class DownloadManager: NSObject {
         }
         if let old = episode.localFileURL { try? FileManager.default.removeItem(at: old) }
         episode.localFileName = fileName
+        // The downloaded file is the reliable place to read chapters from.
+        if episode.chaptersData == nil { episode.chaptersChecked = false }
         episode.downloadedAt = .now
         episode.fileSize = size
         try? context?.save()
+        AudioPlayer.shared.reloadChaptersIfNeeded(for: episode)
         if fileName.hasPrefix(Self.automaticPrefix),
            let podcast = episode.podcast, podcast.isSubscribed, podcast.autoDownload {
             FeedService.trimAutomaticDownloads(for: podcast)

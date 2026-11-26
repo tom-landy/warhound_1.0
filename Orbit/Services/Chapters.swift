@@ -12,17 +12,26 @@ struct Chapter: Codable, Hashable, Sendable {
 /// at the start of an MP3, which is what ATP and Relay shows use.
 enum Chapters {
     static func load(audio: URL, localFile: URL?, chaptersURL: URL?) async -> [Chapter] {
+        await read(audio: audio, localFile: localFile, chaptersURL: chaptersURL) ?? []
+    }
+
+    /// Chapters found, an empty list if the episode has none, or nil if nothing could be read
+    /// (no signal, server error), so the caller can try again later instead of giving up.
+    static func read(audio: URL, localFile: URL?, chaptersURL: URL?) async -> [Chapter]? {
         if let chaptersURL, let (data, _) = try? await URLSession.shared.data(from: chaptersURL) {
             let chapters = fromJSON(data)
             if !chapters.isEmpty { return chapters }
         }
-        if let localFile, let data = readLocalID3(localFile) {
-            return fromID3(data)
+        if let localFile, FileManager.default.fileExists(atPath: localFile.path) {
+            // A downloaded file always answers: either its tag has chapters or it doesn't.
+            return readLocalID3(localFile).map(fromID3) ?? []
         }
-        if let data = try? await readRemoteID3(audio) {
+        do {
+            guard let data = try await readRemoteID3(audio) else { return [] }   // no ID3 tag
             return fromID3(data)
+        } catch {
+            return nil
         }
-        return []
     }
 
     // MARK: - JSON chapters
@@ -51,7 +60,8 @@ enum Chapters {
         var request = URLRequest(url: url, timeoutInterval: 20)
         request.setValue("bytes=0-\(limit)", forHTTPHeaderField: "Range")
         request.setValue("Orbit/1.0", forHTTPHeaderField: "User-Agent")
-        let (bytes, _) = try await URLSession.shared.bytes(for: request)
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        if let status = (response as? HTTPURLResponse)?.statusCode, status >= 400 { throw URLError(.badServerResponse) }
         var data = Data()
         data.reserveCapacity(65_536)
         var needed = 10

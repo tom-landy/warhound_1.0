@@ -2,7 +2,8 @@ import CarPlay
 import SwiftData
 import UIKit
 
-/// CarPlay screen: Latest, Downloaded and Library tabs, plus the system Now Playing screen.
+/// CarPlay screen: Latest, Downloaded and Library tabs, plus the system Now Playing screen
+/// with a Chapters button when the episode has chapters.
 /// Uses the CarPlay audio entitlement in Config/Orbit.entitlements.
 @MainActor
 final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate, CPNowPlayingTemplateObserver {
@@ -12,6 +13,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
     private let library = CPListTemplate(title: "Library", sections: [])
     private var observers: [NSObjectProtocol] = []
     private var reloadTask: Task<Void, Never>?
+    private var chaptersList: CPListTemplate?
     private static let artwork = NSCache<NSURL, UIImage>()
 
     private var player: AudioPlayer { .shared }
@@ -53,7 +55,16 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
             MainActor.assumeIsolated { self?.scheduleReload() }
         })
         observers.append(NotificationCenter.default.addObserver(forName: .orbitPlaybackChanged, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.scheduleReload() }
+            MainActor.assumeIsolated {
+                self?.scheduleReload()
+                self?.updateNowPlayingButtons()
+            }
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: .orbitChaptersChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.updateNowPlayingButtons()
+                self?.refreshChaptersList()
+            }
         })
     }
 
@@ -174,6 +185,17 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         nowPlaying.upNextTitle = "Up Next"
         nowPlaying.add(self)
         nowPlaying.isAlbumArtistButtonEnabled = false
+        updateNowPlayingButtons()
+    }
+
+    /// Whether the Now Playing buttons currently include Chapters; nil before they're first set.
+    private var hasChapterButton: Bool?
+
+    /// Speed, plus Chapters when the playing episode has them.
+    private func updateNowPlayingButtons() {
+        let wantsChapters = !player.chapters.isEmpty
+        guard wantsChapters != hasChapterButton else { return }
+        hasChapterButton = wantsChapters
         let rate = CPNowPlayingPlaybackRateButton { _ in
             MainActor.assumeIsolated {
                 let speeds = AudioPlayer.speeds
@@ -182,7 +204,44 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
                 player.speed = speeds[(index + 1) % speeds.count]
             }
         }
-        nowPlaying.updateNowPlayingButtons([rate])
+        var buttons: [CPNowPlayingButton] = [rate]
+        if wantsChapters, let image = UIImage(systemName: "list.bullet") {
+            buttons.append(CPNowPlayingImageButton(image: image) { [weak self] _ in
+                MainActor.assumeIsolated { self?.showChapters() }
+            })
+        }
+        CPNowPlayingTemplate.shared.updateNowPlayingButtons(buttons)
+    }
+
+    private func showChapters() {
+        let template = CPListTemplate(title: "Chapters", sections: chapterSections())
+        template.emptyViewTitleVariants = ["No Chapters"]
+        chaptersList = template
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+    }
+
+    private func refreshChaptersList() {
+        guard let chaptersList, interfaceController?.templates.contains(where: { $0 === chaptersList }) == true else {
+            self.chaptersList = nil
+            return
+        }
+        chaptersList.updateSections(chapterSections())
+    }
+
+    private func chapterSections() -> [CPListSection] {
+        let current = player.currentChapterIndex
+        let items = player.chapters.prefix(CPListTemplate.maximumItemCount).enumerated().map { index, chapter in
+            let item = CPListItem(text: chapter.title.isEmpty ? "Chapter \(index + 1)" : chapter.title,
+                                  detailText: chapter.start.clock)
+            item.isPlaying = index == current
+            item.playingIndicatorLocation = .leading
+            item.handler = { _, completion in
+                MainActor.assumeIsolated { AudioPlayer.shared.seek(to: chapter) }
+                completion()
+            }
+            return item
+        }
+        return [CPListSection(items: Array(items))]
     }
 
     nonisolated func nowPlayingTemplateUpNextButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
