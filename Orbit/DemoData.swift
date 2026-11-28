@@ -1,0 +1,114 @@
+import SwiftData
+import SwiftUI
+
+/// Sample library for screenshots and previews. Launch with `-demo`, optionally
+/// `-demoTab library|search|latest`, `-demoPlayer YES` to open the full player,
+/// `-demoTab settings` for Settings, `-demoImport YES` to open the import screen,
+/// `-demoUpNext YES` / `-demoChapters YES` (with `-demoPlayer YES`) for those sheets,
+/// and `-accentTheme blue` (any theme) to change colour.
+@MainActor
+enum DemoData {
+    static var isActive: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }
+    static var showsWelcome: Bool { isActive && UserDefaults.standard.bool(forKey: "demoWelcome") }
+
+    static func seed(_ context: ModelContext) {
+        let shows: [(String, String, [String])] = [
+            ("The Long Game", "Harbour Audio", ["Why nobody finishes the marathon", "Compound interest, explained badly", "The case for boring"]),
+            ("Painted Armies", "Tabletop Weekly", ["Batch painting 40 knights", "Basing that doesn't look like basing", "Contrast paints, two years on"]),
+            ("Night Shift", "Ferro Media", ["The last lighthouse keeper", "Inside a 24-hour bakery"]),
+            ("Field Notes", "Open Air", ["Swifts over the city", "A year of moths"]),
+            ("Small Engines", "Garage Radio", ["Carburettors without tears", "Two-stroke or four?"]),
+            ("Second Opinion", "Clinic Talk", ["What a GP actually checks", "Sleep, properly"]),
+        ]
+        var day = 0
+        for (i, (title, author, eps)) in shows.enumerated() {
+            let podcast = Podcast(feedURL: URL(string: "https://example.com/feed/\(i)")!, title: title, author: author,
+                                  summary: "A demo show used for screenshots. \(author) makes it every week.")
+            podcast.isSubscribed = true
+            // Covers for the fictional sample shows (design/render-demo-art.js), for screenshots.
+            podcast.artworkURL = Bundle.main.url(forResource: "demo-art-\(i)", withExtension: "png")
+            context.insert(podcast)
+            for (j, ep) in eps.enumerated() {
+                let e = Episode(key: "demo-\(i)-\(j)", guid: "\(i)-\(j)", title: ep,
+                                summary: "In this episode we get into \(ep.lowercased()), with listener questions at the end.",
+                                pubDate: .now.addingTimeInterval(Double(-86400 * day - 3600 * i)),
+                                duration: Double(1800 + 600 * ((i + j) % 5)),
+                                audioURL: URL(string: "https://example.com/audio/\(i)-\(j).mp3")!, artworkURL: nil)
+                let mail = author.lowercased().replacingOccurrences(of: " ", with: "") + "@example.com"
+                e.notes = "In this episode we get into \(ep.lowercased()), with listener questions at the end.\n\nSend us your questions at [\(mail)](mailto:\(mail))."
+                if i == 1 && j == 0 {
+                    e.notes = paintedArmiesNotes
+                    e.playbackPosition = 1260
+                    e.lastPlayedAt = .now
+                    e.chaptersChecked = true
+                    e.chaptersData = try? JSONEncoder().encode([
+                        Chapter(start: 0, title: "Intro"),
+                        Chapter(start: 95, title: "Listener questions"),
+                        Chapter(start: 610, title: "Priming and undercoats"),
+                        Chapter(start: 1180, title: "Speed painting the rank and file"),
+                        Chapter(start: 1720, title: "Basing in bulk"),
+                        Chapter(start: 2140, title: "Wrap-up"),
+                    ])
+                }
+                if (i == 0 && j == 1) || (i == 3 && j == 0) || (i == 4 && j == 0) { e.queueOrder = Double(i) }
+                if i == 2 && j == 1 { e.isPlayed = true }
+                if (i == 0 && j < 2) || (i == 1 && j < 2) || (i == 2 && j == 0) || i == 3 || j == 0 {
+                    e.localFileName = "demo-\(i)-\(j).mp3"
+                    e.downloadedAt = .now
+                    e.fileSize = 38_000_000 + 9_000_000 * j
+                }
+                context.insert(e)
+                e.podcast = podcast
+                day += 1
+            }
+        }
+        // Five weeks of made-up listening for the stats screen.
+        let calendar = Calendar.current
+        let statShows = [("The Long Game", 0), ("Painted Armies", 1), ("Night Shift", 2), ("Field Notes", 3)]
+        for offset in 0..<35 where offset % 6 != 5 {
+            let day = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -offset, to: .now)!)
+            for (title, i) in statShows where (offset + i) % 3 != 0 {
+                let entry = ListeningDay(day: day, feedURL: "https://example.com/feed/\(i)", showTitle: title)
+                entry.listened = Double(900 + ((offset * 7 + i * 13) % 9) * 420)
+                entry.content = entry.listened * 1.35
+                entry.finished = (offset + i) % 2
+                context.insert(entry)
+            }
+        }
+        try? context.save()
+    }
+
+    /// Full notes for the episode in the player: timestamps and links, as a real feed would have.
+    static let paintedArmiesNotes = """
+    Forty knights, one weekend. We test whether batch painting really saves time, which steps are worth doing in bulk, and where it falls apart. Plus your questions on primers, brushes and keeping a big project going.
+
+    **In this episode**
+    • 01:35 Listener questions: storing wet palettes, and is a £20 brush worth it?
+    • 10:10 Priming and undercoats, and why we gave up on white
+    • 19:40 Speed painting the rank and file in assembly-line batches of ten
+    • 28:40 Basing in bulk: sand, tufts and the two-minute wash
+    • 35:40 Wrap-up and next week's challenge
+
+    **Links**
+    • [The knights we painted](https://example.com/knights)
+    • [Our batch painting checklist](https://example.com/checklist)
+    • [Wet palette guide](https://example.com/wet-palette)
+    • Join the painting challenge at example.com/challenge
+
+    Painted Armies is made by Tabletop Weekly. Send questions to [hello@example.com](mailto:hello@example.com).
+    """
+
+    /// Loads a paused episode into the player and returns the tab to show, if one was asked for.
+    static func apply(player: AudioPlayer, context: ModelContext) -> AppTab? {
+        let defaults = UserDefaults.standard
+        DownloadManager.shared.showDemoProgress("demo-0-2", 0.62)
+        DownloadManager.shared.showDemoProgress("demo-4-1", -1)
+        var descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.key == "demo-1-0" })
+        descriptor.fetchLimit = 1
+        if let episode = try? context.fetch(descriptor).first {
+            player.load(episode, autoplay: false)
+            if defaults.bool(forKey: "demoPlayer") { player.showsFullPlayer = true }
+        }
+        return defaults.string(forKey: "demoTab").flatMap(AppTab.init(rawValue:))
+    }
+}

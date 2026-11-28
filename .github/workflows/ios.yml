@@ -1,0 +1,238 @@
+name: iOS build
+
+on:
+  # Branch work builds through its pull request; pushing to main builds main.
+  push:
+    branches: [main]
+    paths:
+      - "Orbit/**"
+      - "OrbitWatch/**"
+      - "OrbitWidgets/**"
+      - "Shared/**"
+      - "WidgetShared/**"
+      - "Config/**"
+      - "Orbit.xcodeproj/**"
+      - "Orbit-Info.plist"
+      - "tools/feedcheck/**"
+      - "tools/featurecheck/**"
+      - ".github/workflows/ios.yml"
+  # Mac minutes are expensive: only build when app code changes, not for docs.
+  pull_request:
+    paths:
+      - "Orbit/**"
+      - "OrbitWatch/**"
+      - "OrbitWidgets/**"
+      - "Shared/**"
+      - "WidgetShared/**"
+      - "Config/**"
+      - "Orbit.xcodeproj/**"
+      - "Orbit-Info.plist"
+      - "tools/feedcheck/**"
+      - "tools/featurecheck/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+    inputs:
+      screenshots:
+        description: Take simulator screenshots and commit them to docs/screenshots (about 25 Mac minutes)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Build for simulator
+        run: |
+          xcodebuild \
+            -project Orbit.xcodeproj \
+            -target Orbit \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build > ios-build.log 2>&1 || true
+          grep -E "error:|warning: .*(Orbit|Shared)/|BUILD (SUCCEEDED|FAILED)" ios-build.log || true
+          grep -q "BUILD SUCCEEDED" ios-build.log
+      - name: Build watch app
+        run: |
+          xcodebuild \
+            -project Orbit.xcodeproj \
+            -target OrbitWatch \
+            -sdk watchsimulator \
+            -configuration Debug \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build > watch-build.log 2>&1 || true
+          grep -E "error:|warning: .*(OrbitWatch|Shared)/|BUILD (SUCCEEDED|FAILED)" watch-build.log || true
+          grep -q "BUILD SUCCEEDED" watch-build.log
+      - name: Build widgets
+        run: |
+          xcodebuild \
+            -project Orbit.xcodeproj \
+            -target OrbitWidgets \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build > widgets-build.log 2>&1 || true
+          grep -E "error:|warning: .*(OrbitWidgets|WidgetShared)/|BUILD (SUCCEEDED|FAILED)" widgets-build.log || true
+          grep -q "BUILD SUCCEEDED" widgets-build.log
+      - name: Feed parser check
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift Orbit/Services/NotesFormatter.swift tools/feedcheck/main.swift -o /tmp/feedcheck
+          /tmp/feedcheck tools/feedcheck/overcast-sample.opml
+      - name: Smart playlists and listening sync checks
+        run: |
+          swiftc Orbit/Models/SmartPlaylist.swift Orbit/Models/ListeningSyncRevision.swift tools/featurecheck/main.swift -o /tmp/featurecheck
+          /tmp/featurecheck
+      - name: Screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.screenshots
+        timeout-minutes: 45
+        run: |
+          set -x
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          phones=[x for r in d if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")]
+          pro=[x for x in phones if "Pro" in x["name"] and "Max" not in x["name"]]
+          print((pro or phones)[-1]["udid"])')
+          echo "Using $UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState discharging --batteryLevel 100 --cellularBars 4
+          xcrun simctl install "$UDID" build/Debug-iphonesimulator/Orbit.app
+          mkdir -p docs/screenshots
+          cd docs/screenshots
+          shoot() {
+            xcrun simctl terminate "$UDID" com.warhound.orbit 2>/dev/null || true
+            xcrun simctl launch "$UDID" com.warhound.orbit -demo "$@"
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "$NAME.png"
+          }
+          NAME=1-latest shoot -demoTab latest
+          NAME=2-library shoot -demoTab library
+          NAME=3-player shoot -demoTab latest -demoPlayer YES
+          NAME=4-search shoot -demoTab search
+          NAME=5-settings shoot -demoTab settings -accentTheme teal
+          NAME=6-player-violet shoot -demoTab latest -demoPlayer YES -accentTheme violet
+          NAME=7-library-blue shoot -demoTab library -accentTheme blue
+          NAME=8-import shoot -demoTab latest -demoImport YES
+          NAME=9-upnext shoot -demoTab latest -demoPlayer YES -demoUpNext YES
+          NAME=10-chapters shoot -demoTab latest -demoPlayer YES -demoChapters YES
+          NAME=11-stats shoot -demoTab library -demoStats YES
+          NAME=12-widgets shoot -demoTab latest -demoWidgets YES
+          NAME=13-welcome shoot -demoTab latest -demoWelcome YES -appearance system
+          NAME=14-latest-light shoot -demoTab latest -appearance light
+          NAME=15-player-light shoot -demoTab latest -demoPlayer YES -appearance light
+          NAME=16-stats-light shoot -demoTab library -demoStats YES -appearance light
+          NAME=17-settings-light shoot -demoTab settings -appearance light -accentTheme teal
+          xcrun simctl terminate "$UDID" com.warhound.orbit || true
+          xcrun simctl launch "$UDID" com.warhound.orbit
+          sleep 5
+          xcrun simctl io "$UDID" screenshot 0-empty.png
+          sips --resampleWidth 590 *.png >/dev/null
+          # iPad
+          IPAD=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          p=[x for r in d if "iOS" in r for x in d[r] if x["name"].startswith("iPad Pro") or x["name"].startswith("iPad Air")]
+          print(p[-1]["udid"] if p else "")')
+          if [ -n "$IPAD" ]; then
+            xcrun simctl bootstatus "$IPAD" -b
+            xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryState discharging --batteryLevel 100
+            xcrun simctl install "$IPAD" ../../build/Debug-iphonesimulator/Orbit.app
+            # Portrait first (simulator default), then rotate via the Simulator's device orientation setting
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -appearance dark
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-1-portrait-dark.png
+            xcrun simctl terminate "$IPAD" com.warhound.orbit || true
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -appearance light
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-2-portrait-light.png
+            xcrun simctl terminate "$IPAD" com.warhound.orbit || true
+            # Landscape: ask the app to lay out as landscape for the screenshot
+            xcrun simctl launch "$IPAD" com.warhound.orbit -demo -demoLandscape YES
+            sleep 8
+            xcrun simctl io "$IPAD" screenshot ipad-3-landscape-dark.png
+            xcrun simctl shutdown "$IPAD" || true
+            sips --resampleWidth 900 ipad-*.png >/dev/null
+          fi
+          # App Store screenshots, full resolution: iPhone 6.9" and iPad 13"
+          mkdir -p ../appstore
+          pick() { xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          m=[x for r in d if 'iOS' in r for x in d[r] if '$1' in x['name']]
+          print(m[-1]['udid'] if m else '')"; }
+          store_shoot() {
+            DEV=$1; OUT=$2; shift 2
+            xcrun simctl terminate "$DEV" com.warhound.orbit 2>/dev/null || true
+            xcrun simctl launch "$DEV" com.warhound.orbit -demo "$@"
+            sleep 7
+            xcrun simctl io "$DEV" screenshot "../appstore/$OUT.png"
+          }
+          prepare() {
+            xcrun simctl bootstatus "$1" -b
+            xcrun simctl status_bar "$1" override --time 9:41 --batteryState discharging --batteryLevel 100 --cellularBars 4 --wifiBars 3
+            xcrun simctl install "$1" ../../build/Debug-iphonesimulator/Orbit.app
+          }
+          MAX=$(pick "Pro Max")
+          if [ -n "$MAX" ]; then
+            prepare "$MAX"
+            store_shoot "$MAX" iphone-1-latest -demoTab latest -appearance dark
+            store_shoot "$MAX" iphone-2-player -demoTab latest -demoPlayer YES -appearance dark
+            store_shoot "$MAX" iphone-3-library -demoTab library -appearance dark
+            store_shoot "$MAX" iphone-4-chapters -demoTab latest -demoPlayer YES -demoChapters YES -appearance dark
+            store_shoot "$MAX" iphone-5-themes -demoTab settings -appearance light -accentTheme teal
+            store_shoot "$MAX" iphone-6-latest-light -demoTab latest -appearance light
+            xcrun simctl shutdown "$MAX" || true
+          fi
+          PRO13=$(pick "iPad Pro 13")
+          if [ -n "$PRO13" ]; then
+            prepare "$PRO13"
+            store_shoot "$PRO13" ipad-1-dark -appearance dark
+            store_shoot "$PRO13" ipad-2-light -appearance light
+            store_shoot "$PRO13" ipad-3-violet -appearance dark -accentTheme violet
+            xcrun simctl shutdown "$PRO13" || true
+          fi
+          # Watch: sample data, list page and now playing page
+          WATCH=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          w=[x for r in d if "watchOS" in r for x in d[r] if "Apple Watch" in x["name"]]
+          print(w[-1]["udid"] if w else "")')
+          if [ -n "$WATCH" ]; then
+            xcrun simctl bootstatus "$WATCH" -b
+            xcrun simctl install "$WATCH" "../../build/Debug-watchsimulator/Orbit Watch.app"
+            xcrun simctl launch "$WATCH" com.warhound.orbit.watchkitapp -demo -demoPage 1
+            sleep 8
+            xcrun simctl io "$WATCH" screenshot watch-1-latest.png
+            xcrun simctl terminate "$WATCH" com.warhound.orbit.watchkitapp || true
+            xcrun simctl launch "$WATCH" com.warhound.orbit.watchkitapp -demo -demoPage 2
+            sleep 6
+            xcrun simctl io "$WATCH" screenshot watch-2-downloaded.png
+          fi
+      - name: Commit screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots docs/appstore
+          git commit -m "Update screenshots [skip ci]" || exit 0
+          # Pick up anything pushed while the screenshots ran.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"

@@ -1,0 +1,12 @@
+[
+  {"id": "orange", "name": "Orange", "top": "#FFB25C", "bottom": "#F2551D", "base": "#F26A2A"},
+  {"id": "ember", "name": "Ember", "top": "#FF8A6B", "bottom": "#D92D2D", "base": "#EC4A3C"},
+  {"id": "gold", "name": "Gold", "top": "#FFE08A", "bottom": "#EE9F1A", "base": "#F5B83D"},
+  {"id": "lime", "name": "Lime", "top": "#D4F27A", "bottom": "#5DB82E", "base": "#8FD14F"},
+  {"id": "mint", "name": "Mint", "top": "#8FF5C8", "bottom": "#1FAF7A", "base": "#3DD39A"},
+  {"id": "teal", "name": "Teal", "top": "#86ECF0", "bottom": "#1497B0", "base": "#2CC2D4"},
+  {"id": "blue", "name": "Blue", "top": "#9CCBFF", "bottom": "#2F6BF0", "base": "#4D8DFF"},
+  {"id": "violet", "name": "Violet", "top": "#D3B5FF", "bottom": "#7A4AF0", "base": "#A57DFF"},
+  {"id": "pink", "name": "Pink", "top": "#FFA8CB", "bottom": "#EE3D82", "base": "#FF6AA5"},
+  {"id": "silver", "name": "Silver", "top": "#FFFFFF", "bottom": "#9EA2AD", "base": "#D4D7DE"}
+]
