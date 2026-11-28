@@ -187,11 +187,16 @@ struct EpisodeNotesView: View {
                         .foregroundStyle(.secondary)
                     Text(episode.notesDisplay)
                         .font(.body)
+                        .lineSpacing(3)
                         .textSelection(.enabled)
+                        .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
+            .navigationTitle(episode.podcast?.title ?? "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     ShareLink(item: episode.shareURL, subject: Text(episode.title),

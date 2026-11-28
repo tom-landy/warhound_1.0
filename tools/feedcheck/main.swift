@@ -1,6 +1,6 @@
 // Runs the app's own feed and OPML parsers against real feeds.
 // Built and run by CI (see .github/workflows/ios.yml):
-//   swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift tools/feedcheck/main.swift -o feedcheck
+//   swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift Orbit/Services/NotesFormatter.swift tools/feedcheck/main.swift -o feedcheck
 //   ./feedcheck tools/feedcheck/overcast-sample.opml
 import Foundation
 
@@ -83,3 +83,13 @@ for feed in checkable where ["Accidental Tech Podcast", "Connected", "Cortex", "
     for c in chapters.prefix(4) { print("     \(Int(c.start))s  \(c.title)") }
 }
 exit(failures > checkable.count / 2 ? 1 : 0)
+
+// Show notes as Orbit formats them, for a few differently built feeds.
+print("\nShow notes (newest episode, as formatted):")
+for feed in checkable where ["Connected", "Accidental Tech Podcast", "The Imperial Truth - The Horus Heresy 30K podcast", "No Such Thing As A Fish"].contains(where: { feed.title.hasPrefix($0.prefix(20)) }) {
+    guard let data = try? await URLSession.shared.data(from: feed.url).0,
+          let parsed = try? FeedParser.parse(data),
+          let newest = parsed.items.max(by: { ($0.pubDate ?? .distantPast) < ($1.pubDate ?? .distantPast) }) else { continue }
+    print("--- \(feed.title)")
+    print(String(newest.notes.notesMarkdown.prefix(1500)))
+}

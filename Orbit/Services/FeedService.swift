@@ -113,9 +113,9 @@ enum FeedService {
         return try await Task.detached(priority: .userInitiated) { try FeedParser.parse(data) }.value
     }
 
-    /// Set after the first full refresh that stores full notes (0.38). Until then, existing
+    /// Set after the first full refresh with the current notes formatting (0.41). Until then, existing
     /// episodes get their notes replaced from the feed.
-    private static let refillNotesKey = "notesFromContent1"
+    private static let refillNotesKey = "notesFormatted2"
     private static var refillNotes: Bool { !UserDefaults.standard.bool(forKey: refillNotesKey) }
 
     @discardableResult

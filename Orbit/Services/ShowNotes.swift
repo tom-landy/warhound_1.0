@@ -4,37 +4,6 @@ import Foundation
 // and timestamps become links that jump to that point in the episode.
 
 extension String {
-    /// Feed HTML to light markdown: `<a href>` becomes `[text](url)`, list items become bullets,
-    /// paragraphs become lines; everything else is stripped like `plainText`.
-    var notesMarkdown: String {
-        guard let anchor = try? NSRegularExpression(
-            pattern: "<a\\s[^>]*href\\s*=\\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
-            options: [.caseInsensitive, .dotMatchesLineSeparators]) else { return plainText }
-        let ns = self as NSString
-        var out = ""
-        var last = 0
-        for match in anchor.matches(in: self, range: NSRange(location: 0, length: ns.length)) {
-            out += ns.substring(with: NSRange(location: last, length: match.range.location - last))
-            let url = ns.substring(with: match.range(at: 1))
-                .replacingOccurrences(of: "&amp;", with: "&")
-                .replacingOccurrences(of: " ", with: "%20")
-                .replacingOccurrences(of: ")", with: "%29")
-            var text = ns.substring(with: match.range(at: 2))
-                .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-                .replacingOccurrences(of: "[", with: "(")
-                .replacingOccurrences(of: "]", with: ")")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if text.isEmpty { text = url }
-            out += "[\(text)](\(url))"
-            last = match.range.location + match.range.length
-        }
-        out += ns.substring(from: last)
-        return out
-            .replacingOccurrences(of: "<li[^>]*>", with: "\n• ", options: [.regularExpression, .caseInsensitive])
-            .replacingOccurrences(of: "</?(ul|ol)[^>]*>", with: "\n", options: [.regularExpression, .caseInsensitive])
-            .plainText
-    }
-
     /// Markdown notes rendered for display: links tappable, bare web addresses linked, and
     /// timestamps (12:34 or 1:02:03) linked to `orbit-seek://<seconds>`.
     var notesAttributed: AttributedString {

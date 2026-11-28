@@ -94,7 +94,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         run: |
-          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift tools/feedcheck/main.swift -o /tmp/feedcheck
+          swiftc -O Orbit/Services/FeedParser.swift Orbit/Services/OPML.swift Orbit/Services/Chapters.swift Orbit/Services/NotesFormatter.swift tools/feedcheck/main.swift -o /tmp/feedcheck
           /tmp/feedcheck tools/feedcheck/overcast-sample.opml
       - name: Smart playlists and listening sync checks
         run: |
