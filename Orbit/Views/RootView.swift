@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 enum AppTab: String, Hashable {
-    case latest, library, search, downloads, settings
+    case latest, library, search, settings
 }
 
 struct RootView: View {
@@ -116,10 +116,6 @@ extension RootView {
                 .miniPlayerInset()
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
                 .tag(AppTab.search)
-            NavigationStack { DownloadsView() }
-                .miniPlayerInset()
-                .tabItem { Label("Downloads", systemImage: "arrow.down.circle") }
-                .tag(AppTab.downloads)
             NavigationStack { SettingsView() }
                 .miniPlayerInset()
                 .tabItem { Label("Settings", systemImage: "gearshape") }

@@ -53,6 +53,7 @@ struct DownloadsView: View {
         }
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await FeedService.refreshAll(context: context) }
         .toolbar {
             if !downloaded.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {

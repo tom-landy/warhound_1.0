@@ -1,8 +1,15 @@
 import SwiftData
 import SwiftUI
 
+/// Latest: unplayed episodes from followed shows, or (switch at the top) what's downloaded.
 struct LatestView: View {
+    enum Filter: String, CaseIterable {
+        case new = "Unplayed"
+        case downloaded = "Downloaded"
+    }
+
     @Binding var tab: AppTab
+    @SceneStorage("latestFilter") private var filter: Filter = .new
     @Environment(\.modelContext) private var context
     @Query(sort: \Episode.pubDate, order: .reverse) private var episodes: [Episode]
 
@@ -21,15 +28,18 @@ struct LatestView: View {
             .map { $0 }
     }
 
+    /// Unplayed only: played episodes stay in each show's page and All Episodes.
     private var latest: [Episode] {
         let resuming = Set(inProgress.map(\.key))
-        return subscribed.filter { !resuming.contains($0.key) }.prefix(80).map { $0 }
+        return subscribed.filter { !$0.isPlayed && !resuming.contains($0.key) }.prefix(80).map { $0 }
     }
 
     var body: some View {
         Group {
             if !followsAnything {
                 EmptyLibraryView { tab = .search }
+            } else if filter == .downloaded {
+                DownloadsView()
             } else {
                 List {
                     if !inProgress.isEmpty {
@@ -44,10 +54,27 @@ struct LatestView: View {
                 .listStyle(.plain)
                 .environment(\.defaultMinListRowHeight, 0)
                 .refreshable { await FeedService.refreshAll(context: context) }
+                .overlay {
+                    if inProgress.isEmpty && latest.isEmpty {
+                        ContentUnavailableView("All Caught Up", systemImage: "checkmark.circle",
+                                               description: Text("New episodes from your shows appear here."))
+                    }
+                }
             }
         }
         .navigationTitle("Latest")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if followsAnything {
+                ToolbarItem(placement: .principal) {
+                    Picker("Show", selection: $filter.animation(.snappy(duration: 0.25))) {
+                        ForEach(Filter.allCases, id: \.self) { Text($0.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+            }
+        }
     }
 }
 
