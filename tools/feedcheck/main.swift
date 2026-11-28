@@ -82,7 +82,6 @@ for feed in checkable where ["Accidental Tech Podcast", "Connected", "Cortex", "
     print("  \(feed.title): \(chapters.count) chapters via \(source) in \(ms)ms")
     for c in chapters.prefix(4) { print("     \(Int(c.start))s  \(c.title)") }
 }
-exit(failures > checkable.count / 2 ? 1 : 0)
 
 // Show notes as Orbit formats them, for a few differently built feeds.
 print("\nShow notes (newest episode, as formatted):")
@@ -93,3 +92,5 @@ for feed in checkable where ["Connected", "Accidental Tech Podcast", "The Imperi
     print("--- \(feed.title)")
     print(String(newest.notes.notesMarkdown.prefix(1500)))
 }
+
+exit(failures > checkable.count / 2 ? 1 : 0)
