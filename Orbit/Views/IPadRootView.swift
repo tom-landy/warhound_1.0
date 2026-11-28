@@ -314,10 +314,7 @@ private struct EpisodeNotesPanel: View {
                 }
                 .buttonStyle(.bordered)
                 Divider()
-                Text(episode.notesDisplay)
-                    .font(.body)
-                    .lineSpacing(4)
-                    .textSelection(.enabled)
+                NotesText(notes: episode.notesDisplay)
             }
             .padding(22)
             .frame(maxWidth: .infinity, alignment: .leading)

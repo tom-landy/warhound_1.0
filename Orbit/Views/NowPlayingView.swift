@@ -185,11 +185,8 @@ struct EpisodeNotesView: View {
                     Text([episode.pubDate.episodeDate, episode.duration.spoken].filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(episode.notesDisplay)
-                        .font(.body)
-                        .lineSpacing(3)
-                        .textSelection(.enabled)
-                        .padding(.top, 4)
+                    NotesText(notes: episode.notesDisplay)
+                        .padding(.top, 6)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
