@@ -60,15 +60,28 @@ struct NowPlayingView: View {
 
                 accessories
                     .padding(.top, 20)
+
+                notesHandle
+                    .padding(.top, 6)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 8)
+            .padding(.bottom, 4)
+            .contentShape(Rectangle())
+            // Swipe up anywhere on the player for the notes. Vertical only, so the scrubber
+            // and the swipe-down to close still work.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 24).onEnded { drag in
+                    let t = drag.translation
+                    if t.height < -50, abs(t.height) > abs(t.width) * 1.5 { showsNotes = true }
+                }
+            )
+            .accessibilityAction(named: "Episode Notes") { showsNotes = true }
             .frame(maxWidth: 560) // iPad and wide screens
             .frame(maxWidth: .infinity)
             .background { backdrop(episode) }
             .presentationDragIndicator(.visible)
             .sheet(isPresented: $showsNotes) {
-                EpisodeNotesView(episode: episode)
+                EpisodeNotesView(episode: episode, detent: .large)
             }
             .sheet(isPresented: $showsUpNext) { UpNextView() }
             .sheet(isPresented: $showsChapters) { ChaptersView() }
@@ -110,6 +123,23 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
     }
 
+    /// Shows the notes, and hints that a swipe up does the same.
+    private var notesHandle: some View {
+        Button { showsNotes = true } label: {
+            VStack(spacing: 0) {
+                Image(systemName: "chevron.compact.up")
+                    .font(.title2)
+                Text("Notes")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Episode Notes")
+    }
+
     private var accessories: some View {
         HStack {
             SpeedMenuButton()
@@ -125,13 +155,6 @@ struct NowPlayingView: View {
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("Up Next")
-            Spacer()
-            Button { showsNotes = true } label: {
-                Image(systemName: "text.alignleft")
-                    .font(.title3)
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Episode Notes")
         }
         .foregroundStyle(.secondary)
     }
@@ -172,6 +195,8 @@ private struct RoutePicker: UIViewRepresentable {
 
 struct EpisodeNotesView: View {
     let episode: Episode
+    /// How tall the sheet opens: half height from a list, full from the player.
+    @State var detent: PresentationDetent = .medium
     @Environment(AudioPlayer.self) private var player
     @Environment(\.dismiss) private var dismiss
 
@@ -217,6 +242,6 @@ struct EpisodeNotesView: View {
             player.play(episode, from: seconds)
             return .handled
         })
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
     }
 }
