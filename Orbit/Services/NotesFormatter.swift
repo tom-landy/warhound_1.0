@@ -71,8 +71,9 @@ private struct NotesWriter {
             // Relay puts each link in its own <h5>: those read best as a list too.
             if !closing {
                 breakLine(1)
-                // Nested list items are indented with a hollow bullet.
-                out += name == "li" && listDepth > 1 ? "\u{2003}◦ " : "• "
+                // Nested list items: one em space of indent per level, then •, ◦ or ▪.
+                let depth = name == "li" ? max(1, min(listDepth, 4)) : 1
+                out += String(repeating: "\u{2003}", count: depth - 1) + ["•", "◦", "▪", "▪"][depth - 1] + " "
             } else if name != "li" {
                 breakLine(1)
             }
@@ -90,7 +91,7 @@ private struct NotesWriter {
             link?.text += text
             return
         }
-        if out.isEmpty || out.hasSuffix("\n") || out.hasSuffix("• ") || out.hasSuffix("◦ ") || out.hasSuffix("**") && headingStart == out.endIndex {
+        if out.isEmpty || out.hasSuffix("\n") || out.hasSuffix("• ") || out.hasSuffix("◦ ") || out.hasSuffix("▪ ") || out.hasSuffix("**") && headingStart == out.endIndex {
             let trimmed = text.drop { $0 == " " }
             out += Self.escape(String(trimmed))
         } else {

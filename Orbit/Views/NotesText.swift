@@ -22,10 +22,10 @@ struct NotesText: View {
     @ViewBuilder
     private func line(_ text: AttributedString) -> some View {
         let plain = String(text.characters)
-        if plain.hasPrefix("• ") {
-            bullet("•", Self.drop(2, from: text), indent: 0)
-        } else if plain.hasPrefix("\u{2003}◦ ") {
-            bullet("◦", Self.drop(3, from: text), indent: size)
+        let level = plain.prefix { $0 == "\u{2003}" }.count
+        let rest = plain.dropFirst(level)
+        if let mark = rest.first, "•◦▪".contains(mark), rest.dropFirst().hasPrefix(" ") {
+            bullet(String(mark), Self.drop(level + 2, from: text), indent: size * 1.1 * CGFloat(level))
         } else {
             Text(text)
         }
