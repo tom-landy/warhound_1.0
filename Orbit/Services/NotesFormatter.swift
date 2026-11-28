@@ -23,6 +23,7 @@ private struct NotesWriter {
     private var link: (url: String, text: String)?
     private var headingStart: String.Index?
     private var skipping = 0   // inside <script> or <style>
+    private var listDepth = 0
 
     mutating func write(_ html: String) {
         guard let tokens = try? NSRegularExpression(pattern: "<!--.*?-->|<[^>]*>|[^<]+",
@@ -70,12 +71,14 @@ private struct NotesWriter {
             // Relay puts each link in its own <h5>: those read best as a list too.
             if !closing {
                 breakLine(1)
-                out += "• "
+                // Nested list items are indented with a hollow bullet.
+                out += name == "li" && listDepth > 1 ? "\u{2003}◦ " : "• "
             } else if name != "li" {
                 breakLine(1)
             }
         case "ul", "ol":
-            breakLine(closing ? 2 : 1)
+            listDepth = max(0, listDepth + (closing ? -1 : 1))
+            breakLine(closing && listDepth == 0 ? 2 : 1)
         default:
             break
         }
@@ -87,7 +90,7 @@ private struct NotesWriter {
             link?.text += text
             return
         }
-        if out.isEmpty || out.hasSuffix("\n") || out.hasSuffix("• ") || out.hasSuffix("**") && headingStart == out.endIndex {
+        if out.isEmpty || out.hasSuffix("\n") || out.hasSuffix("• ") || out.hasSuffix("◦ ") || out.hasSuffix("**") && headingStart == out.endIndex {
             let trimmed = text.drop { $0 == " " }
             out += Self.escape(String(trimmed))
         } else {
@@ -97,7 +100,7 @@ private struct NotesWriter {
 
     /// Before link text at the start of a line, drop the space the HTML source left there.
     private mutating func startText() {
-        if out.hasSuffix(" "), out.dropLast().hasSuffix("\n") || out.dropLast().hasSuffix("•") {
+        if out.hasSuffix(" "), out.dropLast().hasSuffix("\n") {
             out.removeLast()
         }
     }
@@ -189,7 +192,7 @@ private struct NotesWriter {
     static func tidy(_ text: String) -> String {
         text.replacingOccurrences(of: "\r\n?", with: "\n", options: .regularExpression)
             .replacingOccurrences(of: "[ \\t]+\n", with: "\n", options: .regularExpression)
-            .replacingOccurrences(of: "\n[ \\t]+", with: "\n", options: .regularExpression)
+            .replacingOccurrences(of: "\n[ \\t]+", with: "\n", options: .regularExpression)   // em space indents survive
             .replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
