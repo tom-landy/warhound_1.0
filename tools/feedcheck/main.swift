@@ -54,6 +54,10 @@ for feed in checkable {
         if let newest = items.compactMap(\.pubDate).max() {
             print("       newest: \(newest.formatted(date: .abbreviated, time: .omitted)), sample duration: \(items.first.map { Int($0.duration) } ?? 0)s")
         }
+        if let first = items.first {
+            let links = first.notes.components(separatedBy: "<a ").count - 1
+            print("       notes: \(first.notes.count) chars, \(links) links (summary \(first.summary.count) chars)")
+        }
         if noDate > 0, let raw = items.first(where: { $0.pubDate == nil }) {
             print("       undated example: \(raw.title.prefix(60))")
         }

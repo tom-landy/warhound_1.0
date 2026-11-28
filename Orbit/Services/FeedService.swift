@@ -89,11 +89,13 @@ enum FeedService {
     static func refreshAll(context: ModelContext) async {
         let descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
         guard let podcasts = try? context.fetch(descriptor) else { return }
-        await withTaskGroup(of: Void.self) { group in
+        let allRefreshed = await withTaskGroup(of: Bool.self) { group in
             for podcast in podcasts {
-                group.addTask { @MainActor in try? await refresh(podcast, context: context) }
+                group.addTask { @MainActor in (try? await refresh(podcast, context: context)) != nil }
             }
+            return await group.allSatisfy { $0 }
         }
+        if allRefreshed { UserDefaults.standard.set(true, forKey: refillNotesKey) }
         DownloadManager.shared.cleanUp(keeping: AudioPlayer.shared.episode)
         keepLatestDownloaded(context: context)
         SpotlightIndex.schedule(context: context)
@@ -111,6 +113,11 @@ enum FeedService {
         return try await Task.detached(priority: .userInitiated) { try FeedParser.parse(data) }.value
     }
 
+    /// Set after the first full refresh that stores full notes (0.38). Until then, existing
+    /// episodes get their notes replaced from the feed.
+    private static let refillNotesKey = "notesFromContent1"
+    private static var refillNotes: Bool { !UserDefaults.standard.bool(forKey: refillNotesKey) }
+
     @discardableResult
     private static func merge(_ parsed: ParsedFeed, into podcast: Podcast, context: ModelContext) -> [Episode] {
         var added: [Episode] = []
@@ -122,7 +129,12 @@ enum FeedService {
                 episode.chaptersChecked = false
             }
             if episode.webURL == nil { episode.webURL = item.link }
-            if episode.notes.isEmpty, !item.summary.isEmpty { episode.notes = item.summary.notesMarkdown }
+            // Fill notes that are missing, and once, replace notes saved by builds that kept the
+            // short summary instead of the full notes.
+            if !item.notes.isEmpty, episode.notes.isEmpty || refillNotes {
+                let notes = item.notes.notesMarkdown
+                if notes != episode.notes { episode.notes = notes }
+            }
         }
         let known = Set(existing.keys)
         let prefix = podcast.feedURL.absoluteString + "#"
@@ -131,7 +143,7 @@ enum FeedService {
             let episode = Episode(key: prefix + item.guid, guid: item.guid, title: item.title,
                                   summary: item.summary.plainText, pubDate: item.pubDate ?? .distantPast,
                                   duration: item.duration, audioURL: audio, artworkURL: item.artworkURL)
-            episode.notes = item.summary.notesMarkdown
+            episode.notes = item.notes.notesMarkdown
             episode.chaptersURL = item.chaptersURL
             episode.webURL = item.link
             context.insert(episode)
