@@ -14,8 +14,8 @@ struct ParsedEpisode: Sendable {
     var title = ""
     /// Short description for lists: <description>, else the first of the others.
     var summary = ""
-    /// Full show notes: content:encoded when present (Relay and most WordPress feeds put the
-    /// links there and only a one-line itunes:summary elsewhere), else the longest description.
+    /// Full show notes: the longest of description, itunes:summary and content:encoded. Relay
+    /// feeds put the full notes in content:encoded and a one-liner elsewhere; others the reverse.
     var notes = ""
     var pubDate: Date?
     var duration: TimeInterval = 0
@@ -23,7 +23,6 @@ struct ParsedEpisode: Sendable {
     var artworkURL: URL?
     var chaptersURL: URL?
     var link: URL?
-    var notesFromContent = false
 }
 
 enum FeedError: LocalizedError {
@@ -113,10 +112,7 @@ final class FeedParser: NSObject, XMLParserDelegate {
                 if let url = Self.url(value), url.scheme != nil { current.artworkURL = url }
             case "description", "itunes:summary", "content:encoded":
                 if current.summary.isEmpty || name == "description" { current.summary = value }
-                if name == "content:encoded" ? !value.isEmpty : value.count > current.notes.count && !current.notesFromContent {
-                    current.notes = value
-                    if name == "content:encoded" { current.notesFromContent = true }
-                }
+                if value.count > current.notes.count { current.notes = value }
             case "item":
                 if current.audioURL != nil {
                     if current.guid.isEmpty { current.guid = current.audioURL!.absoluteString }
